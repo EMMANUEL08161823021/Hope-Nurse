@@ -1,7 +1,7 @@
 <?php
 require_once '../middleware/auth.php';
 requireRole('admin');
-require_once '../db.php';
+require_once '../config/db.php';
 
 // Fetch students only
 $stmt = $pdo->query("

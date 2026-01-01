@@ -1,7 +1,7 @@
 <?php
 require_once '../middleware/auth.php';
 requireRole('admin');
-require_once '../db.php';
+require_once '../config/db.php';
 
 $id = intval($_GET['id'] ?? 0);
 if (!$id) die('Invalid request');

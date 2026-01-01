@@ -1,8 +1,20 @@
 <?php
-return [
-  'db_host' => 'localhost',
-  'db_name' => 'hope_nurse_exam',
-  'db_user' => 'root',        // XAMPP default
-  'db_pass' => '',            // XAMPP default
-  'base_url' => 'http://localhost/hope-nurse-exam/public'
+
+$config = [
+    'host' => 'localhost',
+    'user' => 'root',
+    'pass' => '',
+    'db'   => 'hope_nurse_exam',
+    'base_url' => 'http://localhost/hope-nurse-exam/',
 ];
+
+$conn = new mysqli(
+    $config['host'],
+    $config['user'],
+    $config['pass'],
+    $config['db']
+);
+
+if ($conn->connect_error) {
+    die("Database connection failed: " . $conn->connect_error);
+}
