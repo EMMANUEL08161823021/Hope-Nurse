@@ -1,10 +1,11 @@
 <?php
-require_once '../middleware/auth.php';
+require_once __DIR__ . '/../middleware/auth.php';
 requireRole('student');
+
 ?>
 
 <h2>Student Dashboard</h2>
-<p>Welcome, <?= htmlspecialchars($_SESSION['user']['name']) ?></p>
+
 
 <ul>
     <li><a href="#">Available Exams</a></li>

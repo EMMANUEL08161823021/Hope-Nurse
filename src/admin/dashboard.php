@@ -1,6 +1,7 @@
 <?php
-require_once '../middleware/auth.php';
+require_once __DIR__ . '/../middleware/auth.php';
 requireRole('admin');
+
 require_once '../config/db.php';
 
 /* ===== METRICS ===== */

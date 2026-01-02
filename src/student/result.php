@@ -1,8 +1,8 @@
 <?php
 // src/student/result.php
-require_once __DIR__ . '/../../middleware/auth.php';
+require_once __DIR__ . '../middleware/auth.php';
 if ($_SESSION['user']['role'] !== 'student') die('Forbidden');
-require_once __DIR__ . '/../../config/db.php';
+require_once __DIR__ . '../config/db.php';
 
 $attempt_id = intval($_GET['attempt_id'] ?? 0);
 $stmt = $pdo->prepare("SELECT a.*, e.title FROM attempts a JOIN exams e ON a.exam_id=e.id WHERE a.id=? AND a.student_id=?");

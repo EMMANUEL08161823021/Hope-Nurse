@@ -1,8 +1,8 @@
 <?php
 // src/student/instructions.php
-require_once __DIR__ . '/../../middleware/auth.php';
+require_once __DIR__ . '../middleware/auth.php';
 if ($_SESSION['user']['role'] !== 'student') { die('Forbidden'); }
-require_once __DIR__ . '/../../config/db.php';
+require_once __DIR__ . '../config/db.php';
 
 $exam_id = (int)($_GET['exam_id'] ?? 0);
 if (!$exam_id) { die('Missing exam id'); }

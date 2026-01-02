@@ -1,7 +1,11 @@
 <?php
 session_start();
 
-if (!isset($_SESSION['user'])) {
+if (
+    !isset($_SESSION['user']) ||
+    !isset($_SESSION['user']['id']) ||
+    !isset($_SESSION['user']['role'])
+) {
     header("Location: ../src/auth/login.php");
     exit;
 }
