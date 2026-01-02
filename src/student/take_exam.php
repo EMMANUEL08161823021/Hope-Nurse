@@ -1,8 +1,8 @@
 <?php
 // src/student/take_exam.php
-require_once __DIR__ . '/../../middleware/auth.php';
+require_once '../middleware/auth.php';
 if ($_SESSION['user']['role'] !== 'student') die('Forbidden');
-require_once __DIR__ . '/../../config/db.php';
+require_once '../config/db.php';
 
 $attempt_id = intval($_GET['attempt_id'] ?? 0);
 if (!$attempt_id) die('Missing attempt');

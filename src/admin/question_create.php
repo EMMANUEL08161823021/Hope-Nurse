@@ -16,12 +16,9 @@ $stmt->execute([$exam_id]);
 $exam = $stmt->fetch();
 if (!$exam) die('Exam not found');
 ?>
-<!doctype html>
-<html>
-<head>
-  <meta charset="utf-8">
+<?php require '../constants/header.php'?>
+
   <title>Add Question — <?= htmlspecialchars($exam['title']); ?></title>
-  <link href="/assets/bootstrap.min.css" rel="stylesheet">
 </head>
 <body class="container py-4">
   <h3>Add Question to: <?= htmlspecialchars($exam['title']); ?></h3>

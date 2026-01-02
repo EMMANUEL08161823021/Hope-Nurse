@@ -13,11 +13,9 @@ $stmt = $pdo->query("
 $students = $stmt->fetchAll();
 ?>
 
-<!DOCTYPE html>
-<html>
-<head>
+<?php require '../constants/header.php'?>
+
     <title>Manage Students</title>
-    <link rel="stylesheet" href="../assets/bootstrap.min.css">
 </head>
 <body>
 

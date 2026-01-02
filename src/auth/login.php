@@ -7,11 +7,8 @@ if (isset($_SESSION['user'])) {
     exit;
 }
 ?>
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Login | Hope Nurse Exam</title>
-    <link rel="stylesheet" href="../../assets/bootstrap.min.css">
+<?php require '../constants/header.php'?>
+     <title>Login | Hope Nurse Exam</title>
 </head>
 <body class="container mt-5">
 

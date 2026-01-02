@@ -29,11 +29,8 @@ $qCountStmt = $pdo->prepare("SELECT COUNT(*) FROM questions WHERE exam_id = ?");
 $qCountStmt->execute([$exam_id]);
 $totalQuestions = $qCountStmt->fetchColumn();
 ?>
-<!DOCTYPE html>
-<html>
-<head>
+<?php require '../constants/header.php'?>
     <title>View Exam</title>
-    <link rel="stylesheet" href="../assets/bootstrap.min.css">
 </head>
 <body>
 

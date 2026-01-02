@@ -35,11 +35,8 @@ $recentExamsStmt = $pdo->query("
 $recentExams = $recentExamsStmt->fetchAll();
 ?>
 
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Admin Dashboard</title>
-    <link rel="stylesheet" href="../assets/bootstrap.min.css">
+<?php require '../constants/header.php'?>
+     <title>Admin Dashboard</title>
 </head>
 <body>
 
