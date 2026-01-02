@@ -1,5 +1,5 @@
 <?php
-require 'src/db.php';
+require 'src/config/db.php';
 
 $stmt = $pdo->query("SHOW TABLES");
 $tables = $stmt->fetchAll();

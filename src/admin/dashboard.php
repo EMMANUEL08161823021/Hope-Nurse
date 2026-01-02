@@ -99,6 +99,7 @@ $recentExams = $recentExamsStmt->fetchAll();
 
     <!-- QUICK ACTIONS -->
     <div class="mb-4">
+        <!-- <a href="exams.php" class="btn btn-primary">Manage Exams</a> -->
         <a href="students.php" class="btn btn-secondary">Manage Students</a>
         <a href="create_exam.php" class="btn btn-success">Create Exam</a>
     </div>

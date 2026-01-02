@@ -39,7 +39,7 @@ $totalQuestions = $qCountStmt->fetchColumn();
 
 <div class="container mt-4">
 
-    <a href="exams.php" class="btn btn-secondary mb-3">← Back to Exams</a>
+    <a href="dashboard.php" class="btn btn-secondary mb-3">← Back to Exams</a>
 
     <div class="card shadow-sm">
         <div class="card-body">
@@ -127,32 +127,32 @@ $totalQuestions = $qCountStmt->fetchColumn();
 
                 <table class="table table-bordered">
                     <thead>
-                    <tr>
-                        <th>Question</th>
-                        <th>Type</th>
-                        <th>Marks</th>
-                        <th>Action</th>
-                    </tr>
+                        <tr>
+                            <th>Question</th>
+                            <th>Type</th>
+                            <th>Marks</th>
+                            <th>Action</th>
+                        </tr>
                     </thead>
                     <tbody>
-                    <?php if (!$questions): ?>
-                        <tr><td colspan="4" class="text-center">No questions yet</td></tr>
-                    <?php endif; ?>
+                        <?php if (!$questions): ?>
+                            <tr><td colspan="4" class="text-center">No questions yet</td></tr>
+                        <?php endif; ?>
 
-                    <?php foreach ($questions as $q): ?>
-                        <tr>
-                            <td><?= htmlspecialchars($q['question_text']) ?></td>
-                            <td><?= ucfirst(str_replace('_',' ', $q['question_type'])) ?></td>
-                            <td><?= $q['marks'] ?></td>
-                            <td>
-                                <a href="delete_question.php?id=<?= $q['id'] ?>&exam_id=<?= $exam_id ?>"
-                                class="btn btn-danger btn-sm"
-                                onclick="return confirm('Delete question?')">
-                                    Delete
-                                </a>
-                            </td>
-                        </tr>
-                    <?php endforeach; ?>
+                        <?php foreach ($questions as $q): ?>
+                            <tr>
+                                <td><?= htmlspecialchars($q['question_text']) ?></td>
+                                <td><?= ucfirst(str_replace('_',' ', $q['question_type'])) ?></td>
+                                <td><?= $q['marks'] ?></td>
+                                <td>
+                                    <a href="delete_question.php?id=<?= $q['id'] ?>&exam_id=<?= $exam_id ?>"
+                                    class="btn btn-danger btn-sm"
+                                    onclick="return confirm('Delete question?')">
+                                        Delete
+                                    </a>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
                     </tbody>
                 </table>
 
