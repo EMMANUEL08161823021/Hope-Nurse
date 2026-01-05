@@ -3,11 +3,8 @@ require_once '../middleware/auth.php';
 requireRole('admin');
 ?>
 
-<!DOCTYPE html>
-<html>
-<head>
+<?php require '../constants/header.php'?>
     <title>Create Exam</title>
-    <link rel="stylesheet" href="../assets/bootstrap.min.css">
 </head>
 <body class="container mt-4">
 

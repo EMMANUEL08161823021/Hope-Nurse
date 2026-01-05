@@ -65,7 +65,8 @@ foreach ($ansStmt->fetchAll() as $r) $saved[$r['question_id']] = $r['answer_text
 
             if (in_array($q['question_type'], ['single_choice','multiple_choice','true_false'])):
               // load options
-              $opt = $pdo->prepare("SELECT * FROM question_options WHERE question_id = ? ORDER BY id ASC");
+
+              $opt = $pdo->prepare("SELECT * FROM options WHERE question_id = ? ORDER BY id ASC");
               $opt->execute([$qid]);
               $opts = $opt->fetchAll();
               if ($q['question_type'] === 'single_choice' || $q['question_type'] === 'true_false'):

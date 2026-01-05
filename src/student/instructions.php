@@ -16,12 +16,8 @@ if (!$exam) { die('Exam not found'); }
 // optional: check assignment or other business rules here
 
 ?>
-<!doctype html>
-<html>
-<head>
-  <meta charset="utf-8">
+<?php require '../constants/header.php'?>
   <title>Instructions — <?=htmlspecialchars($exam['title'])?></title>
-  <link rel="stylesheet" href="/assets/bootstrap.min.css">
 </head>
 <body class="container py-4">
   <h3><?=htmlspecialchars($exam['title'])?></h3>
@@ -33,10 +29,11 @@ if (!$exam) { die('Exam not found'); }
     <li>Do not refresh the page — answers are autosaved.</li>
   </ul>
 
-  <form method="post" action="/src/api/start_attempt.php">
-    <input type="hidden" name="exam_id" value="<?= $exam_id ?>">
-    <button class="btn btn-primary">Start Exam</button>
-    <a href="/student/dashboard.php" class="btn btn-secondary">Back</a>
-  </form>
+<form method="post" action="../api/start_attempt.php">
+  <input type="hidden" name="exam_id" value="<?= (int)$exam_id ?>">
+  <button class="btn btn-primary">Start Exam</button>
+  <a href="dashboard.php" class="btn btn-secondary">Back</a>
+</form>
+
 </body>
 </html>

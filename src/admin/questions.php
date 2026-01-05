@@ -9,11 +9,8 @@ $stmt = $pdo->prepare("SELECT * FROM questions WHERE exam_id = ?");
 $stmt->execute([$exam_id]);
 $questions = $stmt->fetchAll();
 ?>
-<!DOCTYPE html>
-<html>
-<head>
+<?php require '../constants/header.php'?>
     <title>Questions</title>
-    <link rel="stylesheet" href="../assets/bootstrap.min.css">
 </head>
 <body>
 <div class="container mt-4">
