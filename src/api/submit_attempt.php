@@ -1,7 +1,7 @@
 <?php
 // src/api/submit_attempt.php
-require_once __DIR__ . '/../config/db.php';
-require_once __DIR__ . '/../middleware/auth.php';
+require_once '../config/db.php';
+require_once '../middleware/auth.php';
 header('Content-Type: application/json');
 
 $data = json_decode(file_get_contents('php://input'), true);
@@ -26,7 +26,7 @@ $qst->execute([$attempt['exam_id']]);
 $questions = $qst->fetchAll();
 
 // load options map
-$optsStmt = $pdo->prepare("SELECT * FROM question_options WHERE question_id = ?");
+$optsStmt = $pdo->prepare("SELECT * FROM options WHERE question_id = ?");
 $ansSelect = $pdo->prepare("SELECT answer_text FROM answers WHERE attempt_id = ? AND question_id = ? LIMIT 1");
 
 // prepare update for answers
@@ -90,7 +90,7 @@ foreach ($questions as $q) {
 // finalize attempt
 $ended_at = (new DateTime())->format('Y-m-d H:i:s');
 $status = $auto ? 'auto_submitted' : 'submitted';
-$upd = $pdo->prepare("UPDATE attempts SET status = ?, ended_at = ?, score = ? WHERE id = ?");
+$upd = $pdo->prepare("UPDATE attempts SET status = ?, submitted_at = ?, score = ? WHERE id = ?");
 $upd->execute([$status, $ended_at, $totalScore, $attempt_id]);
 
 $pdo->commit();

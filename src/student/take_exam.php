@@ -33,12 +33,8 @@ $saved = [];
 foreach ($ansStmt->fetchAll() as $r) $saved[$r['question_id']] = $r['answer_text'];
 
 ?>
-<!doctype html>
-<html>
-<head>
-  <meta charset="utf-8">
+<?php require '../constants/header.php'?>
   <title>Take Exam — <?= htmlspecialchars($attempt['title']) ?></title>
-  <link rel="stylesheet" href="/assets/bootstrap.min.css">
   <style>.question { margin-bottom: 1.5rem; }</style>
 </head>
 <body class="container py-4">
@@ -73,10 +69,10 @@ foreach ($ansStmt->fetchAll() as $r) $saved[$r['question_id']] = $r['answer_text
                   foreach ($opts as $o):
                       $checked = ($savedAnswer !== null && trim($savedAnswer) === (string)$o['id']) ? 'checked' : '';
           ?>
-                      <div class="form-check">
-                        <input class="form-check-input" type="radio" name="q_<?= $qid ?>" value="<?= $o['id'] ?>" id="opt<?= $o['id'] ?>" <?= $checked ?>>
-                        <label class="form-check-label" for="opt<?= $o['id'] ?>"><?= htmlspecialchars($o['option_text']) ?></label>
-                      </div>
+            <div class="form-check">
+              <input class="form-check-input" type="radio" name="q_<?= $qid ?>" value="<?= $o['id'] ?>" id="opt<?= $o['id'] ?>" <?= $checked ?>>
+              <label class="form-check-label" for="opt<?= $o['id'] ?>"><?= htmlspecialchars($o['option_text']) ?></label>
+            </div>
           <?php
                   endforeach;
               else: // multiple_choice
@@ -161,31 +157,33 @@ function collectAnswers() {
 setInterval(()=> {
   const payload = collectAnswers();
   if (!payload.answers.length) return;
-  navigator.sendBeacon('/src/api/save_answers.php', JSON.stringify(payload));
+  navigator.sendBeacon('/hope-nurse/src/api/save_answers.php', JSON.stringify(payload));
 }, 10000);
 
 /* Manual save + submit */
 document.getElementById('submitBtn').addEventListener('click', ()=> {
+  console.log("click");
+  
   saveThenSubmit(false);
 });
 
 /* Save via fetch then submit */
 function saveThenSubmit(isAuto) {
   const payload = collectAnswers();
-  fetch('/src/api/save_answers.php', {
+  fetch('/hope-nurse/src/api/save_answers.php', {
     method: 'POST',
     headers: {'Content-Type':'application/json'},
     body: JSON.stringify(payload)
   }).then(()=> {
     // then call submit
-    fetch('/src/api/submit_attempt.php', {
+    fetch('/hope-nurse/src/api/submit_attempt.php', {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
       body: JSON.stringify({attempt_id: attemptId, auto: isAuto ? 1 : 0})
     }).then(r=>r.json()).then(res=> {
       if (res.success) {
         alert('Exam submitted. Score: ' + res.score);
-        window.location.href = '/student/result.php?attempt_id=' + attemptId;
+        window.location.href = '/hope-nurse/src/student/result.php?attempt_id=' + attemptId;
       } else {
         alert('Submission failed: ' + (res.error || 'Unknown'));
       }
@@ -202,7 +200,7 @@ function autoSubmit() {
 window.addEventListener('beforeunload', function(e) {
   const payload = collectAnswers();
   if (payload.answers.length) {
-    navigator.sendBeacon('/src/api/save_answers.php', JSON.stringify(payload));
+    navigator.sendBeacon('/hope-nurse/src/api/save_answers.php', JSON.stringify(payload));
   }
 });
 </script>

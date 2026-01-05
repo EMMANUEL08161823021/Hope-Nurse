@@ -19,6 +19,8 @@ $stmt = $pdo->prepare("
     ORDER BY e.created_at DESC
 ");
 
+
+
 $stmt->execute([$studentId]);
 $exams = $stmt->fetchAll();
 ?>

@@ -1,7 +1,7 @@
 <?php
 // src/api/save_answers.php
-require_once __DIR__ . '/../config/db.php';
-require_once __DIR__ . '/../middleware/auth.php';
+require_once '../config/db.php';
+require_once '../middleware/auth.php';
 header('Content-Type: application/json');
 
 $data = json_decode(file_get_contents('php://input'), true);
