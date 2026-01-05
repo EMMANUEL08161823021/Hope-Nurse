@@ -4,60 +4,116 @@ requireRole('admin');
 require_once '../config/db.php';
 
 $exam_id = (int)($_GET['exam_id'] ?? 0);
+$errors = [];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    try {
+        $pdo->beginTransaction();
 
-    $stmt = $pdo->prepare("
-        INSERT INTO questions (exam_id, question_text, question_type, marks)
-        VALUES (?, ?, ?, ?)
-    ");
-    $stmt->execute([
-        $_POST['exam_id'],
-        $_POST['question_text'],
-        $_POST['question_type'],
-        $_POST['marks']
-    ]);
+        $question_text = trim($_POST['question_text']);
+        $type = $_POST['question_type'];
+        $marks = (int)$_POST['marks'];
 
-    $question_id = $pdo->lastInsertId();
+        if ($question_text === '' || $marks <= 0) {
+            throw new Exception('Question text and marks are required.');
+        }
 
-    // OPTION-BASED QUESTIONS
-    if (!empty($_POST['options'])) {
-        foreach ($_POST['options'] as $i => $text) {
-            if (trim($text) === '') continue;
+        // Insert question
+        $stmt = $pdo->prepare("
+            INSERT INTO questions (exam_id, question_text, question_type, marks)
+            VALUES (?, ?, ?, ?)
+        ");
+        $stmt->execute([$exam_id, $question_text, $type, $marks]);
 
-            $is_correct = in_array($i, $_POST['correct'] ?? []) ? 1 : 0;
+        $question_id = $pdo->lastInsertId();
+
+        /* ===============================
+           SINGLE / MULTIPLE CHOICE
+        =============================== */
+        if (in_array($type, ['single_choice', 'multiple_choice'])) {
+
+            if (empty($_POST['options']) || empty($_POST['correct'])) {
+                throw new Exception('Options and correct answer(s) required.');
+            }
+
+            if ($type === 'single_choice' && count($_POST['correct']) !== 1) {
+                throw new Exception('Single choice must have exactly one correct answer.');
+            }
+
+            foreach ($_POST['options'] as $i => $text) {
+                $text = trim($text);
+                if ($text === '') continue;
+
+                $is_correct = in_array($i, $_POST['correct']) ? 1 : 0;
+
+                $opt = $pdo->prepare("
+                    INSERT INTO options (question_id, option_text, is_correct)
+                    VALUES (?, ?, ?)
+                ");
+                $opt->execute([$question_id, $text, $is_correct]);
+            }
+        }
+
+        /* ===============================
+           TRUE / FALSE
+        =============================== */
+        if ($type === 'true_false') {
+            if (!isset($_POST['correct_tf'])) {
+                throw new Exception('True/False answer required.');
+            }
+
+            foreach (['True', 'False'] as $value) {
+                $opt = $pdo->prepare("
+                    INSERT INTO options (question_id, option_text, is_correct)
+                    VALUES (?, ?, ?)
+                ");
+                $opt->execute([
+                    $question_id,
+                    $value,
+                    $_POST['correct_tf'] === $value ? 1 : 0
+                ]);
+            }
+        }
+
+        /* ===============================
+           TEXT ANSWERS
+        =============================== */
+        if (in_array($type, ['short_answer', 'fill_blank'])) {
+            if (empty($_POST['correct_answer'])) {
+                throw new Exception('Correct answer is required.');
+            }
 
             $opt = $pdo->prepare("
-                INSERT INTO question_options (question_id, option_text, is_correct)
-                VALUES (?, ?, ?)
+                INSERT INTO options (question_id, option_text, is_correct)
+                VALUES (?, ?, 1)
             ");
-            $opt->execute([$question_id, $text, $is_correct]);
+            $opt->execute([$question_id, trim($_POST['correct_answer'])]);
         }
-    }
 
-    // TEXT ANSWER QUESTIONS
-    if (!empty($_POST['correct_answer'])) {
-        $opt = $pdo->prepare("
-            INSERT INTO question_options (question_id, option_text, is_correct)
-            VALUES (?, ?, 1)
-        ");
-        $opt->execute([$question_id, trim($_POST['correct_answer'])]);
-    }
+        $pdo->commit();
+        header("Location: questions.php?exam_id=$exam_id");
+        exit;
 
-    header("Location: questions.php?exam_id=".$_POST['exam_id']);
-    exit;
+    } catch (Exception $e) {
+        $pdo->rollBack();
+        $errors[] = $e->getMessage();
+    }
 }
 ?>
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Add Question</title>
-    <link rel="stylesheet" href="../assets/bootstrap.min.css">
+
+<?php require __DIR__ . '/../constants/header.php'; ?>
+<title>Add Question</title>
 </head>
 <body>
-<div class="container mt-4">
 
+<div class="container mt-4">
 <h3>Add Question</h3>
+
+<?php if ($errors): ?>
+<div class="alert alert-danger">
+    <?= implode('<br>', array_map('htmlspecialchars', $errors)) ?>
+</div>
+<?php endif; ?>
 
 <form method="POST">
 
@@ -86,35 +142,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </div>
 
 <div id="optionsBox" style="display:none;">
-    <h6>Options</h6>
-    <?php for ($i=0;$i<4;$i++): ?>
-        <div class="input-group mb-2">
-            <input type="text" name="options[]" class="form-control">
-            <span class="input-group-text">
-                <input type="checkbox" name="correct[]" value="<?= $i ?>">
-            </span>
-        </div>
-    <?php endfor; ?>
+<h6>Options</h6>
+<?php for ($i=0; $i<4; $i++): ?>
+<div class="input-group mb-2">
+    <input type="text" name="options[]" class="form-control">
+    <span class="input-group-text">
+        <input type="checkbox" name="correct[]" value="<?= $i ?>">
+    </span>
+</div>
+<?php endfor; ?>
+</div>
+
+<div id="trueFalseBox" style="display:none;">
+<label>Correct Answer</label>
+<select name="correct_tf" class="form-select">
+    <option value="">Select</option>
+    <option value="True">True</option>
+    <option value="False">False</option>
+</select>
 </div>
 
 <div id="answerBox" style="display:none;">
-    <label>Correct Answer</label>
-    <input type="text" name="correct_answer" class="form-control">
+<label>Correct Answer</label>
+<input type="text" name="correct_answer" class="form-control">
 </div>
 
 <button class="btn btn-success mt-3">Save Question</button>
+<a href="questions.php?exam_id=<?= $exam_id ?>" class="btn btn-secondary mt-3 ms-2">Cancel</a>
 
 </form>
 </div>
 
 <script>
 function toggleFields() {
-    let type = document.getElementById('type').value;
-    document.getElementById('optionsBox').style.display =
-        ['single_choice','multiple_choice','true_false'].includes(type) ? 'block' : 'none';
-    document.getElementById('answerBox').style.display =
-        ['short_answer','fill_blank'].includes(type) ? 'block' : 'none';
+    let t = document.getElementById('type').value;
+    optionsBox.style.display = ['single_choice','multiple_choice'].includes(t) ? 'block' : 'none';
+    trueFalseBox.style.display = t === 'true_false' ? 'block' : 'none';
+    answerBox.style.display = ['short_answer','fill_blank'].includes(t) ? 'block' : 'none';
 }
 </script>
+
 </body>
 </html>

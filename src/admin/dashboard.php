@@ -143,8 +143,8 @@ $recentExams = $recentExamsStmt->fetchAll();
         </tbody>
     </table>
 
+    <a href="../auth/logout.php"class="btn btn-outline-danger">Logout</a>
 </div>
-<a href="../auth/logout.php">Logout</a>
 
 </body>
 </html>
