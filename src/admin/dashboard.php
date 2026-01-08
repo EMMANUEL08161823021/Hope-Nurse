@@ -20,7 +20,7 @@ $totalQuestions = $pdo->query("SELECT COUNT(*) FROM questions")->fetchColumn();
 
 // Exam attempts (optional table)
 try {
-    $totalAttempts = $pdo->query("SELECT COUNT(*) FROM exam_attempts")->fetchColumn();
+    $totalAttempts = $pdo->query("SELECT COUNT(*) FROM attempts")->fetchColumn();
 } catch (Exception $e) {
     $totalAttempts = 0;
 }
