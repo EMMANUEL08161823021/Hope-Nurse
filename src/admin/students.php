@@ -3,14 +3,27 @@ require_once '../middleware/auth.php';
 requireRole('admin');
 require_once '../config/db.php';
 
-// Fetch students only
+// Fetch students with their latest submitted score (if any)
 $stmt = $pdo->query("
-    SELECT id, full_name, email, status, created_at 
-    FROM users 
-    WHERE role = 'student'
-    ORDER BY created_at DESC
+    SELECT 
+        u.id,
+        u.full_name,
+        u.email,
+        u.status,
+        u.created_at,
+        (
+            SELECT ea.score
+            FROM attempts ea
+            WHERE ea.student_id = u.id
+              AND ea.status IN ('submitted','auto_submitted')
+            ORDER BY ea.submitted_at DESC
+            LIMIT 1
+        ) AS latest_score
+    FROM users u
+    WHERE u.role = 'student'
+    ORDER BY u.created_at DESC
 ");
-$students = $stmt->fetchAll();
+$students = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
 <?php require '../constants/header.php'?>
@@ -25,7 +38,7 @@ $students = $stmt->fetchAll();
 
     <?php if (!empty($_SESSION['flash'])): ?>
         <div class="alert alert-info">
-            <?= $_SESSION['flash']; unset($_SESSION['flash']); ?>
+            <?= htmlspecialchars($_SESSION['flash']); unset($_SESSION['flash']); ?>
         </div>
     <?php endif; ?>
 
@@ -34,6 +47,7 @@ $students = $stmt->fetchAll();
             <tr>
                 <th>Name</th>
                 <th>Email</th>
+                <th>Score</th>
                 <th>Status</th>
                 <th>Registered</th>
                 <th width="30%">Actions</th>
@@ -43,34 +57,47 @@ $students = $stmt->fetchAll();
 
         <?php if (count($students) === 0): ?>
             <tr>
-                <td colspan="5" class="text-center">No students found</td>
+                <td colspan="6" class="text-center">No students found</td>
             </tr>
         <?php else: ?>
             <?php foreach ($students as $s): ?>
                 <tr>
                     <td><?= htmlspecialchars($s['full_name']) ?></td>
                     <td><?= htmlspecialchars($s['email']) ?></td>
+
+                    <td>
+                        <?php
+                        // latest_score might be NULL
+                        if ($s['latest_score'] === null) {
+                            echo '<span class="text-muted">—</span>';
+                        } else {
+                            // format numeric score nicely
+                            echo htmlspecialchars((string)$s['latest_score']);
+                        }
+                        ?>
+                    </td>
+
                     <td>
                         <span class="badge bg-<?= $s['status'] === 'active' ? 'success' : 'danger' ?>">
-                            <?= ucfirst($s['status']) ?>
+                            <?= htmlspecialchars(ucfirst($s['status'])) ?>
                         </span>
                     </td>
-                    <td><?= $s['created_at'] ?></td>
+                    <td><?= htmlspecialchars($s['created_at']) ?></td>
                     <td>
                         <!-- Toggle status -->
-                        <a href="student_toggle.php?id=<?= $s['id'] ?>" 
+                        <a href="student_toggle.php?id=<?= urlencode($s['id']) ?>" 
                            class="btn btn-sm btn-warning">
                            <?= $s['status'] === 'active' ? 'Block' : 'Activate' ?>
                         </a>
 
                         <!-- View attempts -->
-                        <a href="student_attempts.php?id=<?= $s['id'] ?>" 
+                        <a href="student_attempts.php?id=<?= urlencode($s['id']) ?>" 
                            class="btn btn-sm btn-primary">
                            Attempts
                         </a>
 
                         <!-- Delete -->
-                        <a href="student_delete.php?id=<?= $s['id'] ?>"
+                        <a href="student_delete.php?id=<?= urlencode($s['id']) ?>"
                            class="btn btn-sm btn-danger"
                            onclick="return confirm('Delete this student permanently?')">
                            Delete
