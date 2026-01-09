@@ -136,6 +136,11 @@ $recentExams = $recentExamsStmt->fetchAll();
                             <a href="exams_view.php?id=<?= $exam['id'] ?>" class="btn btn-sm btn-outline-primary">
                                 View
                             </a>
+                            <a href="exam_delete.php?id=<?= $exam['id'] ?>"
+                            class="btn btn-sm btn-danger"
+                            onclick="return confirm('Delete this exam permanently?')">
+                                Delete
+                            </a>
                         </td>
                     </tr>
                 <?php endforeach; ?>
