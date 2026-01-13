@@ -8,7 +8,126 @@ if ($exam_id <= 0) {
     die('Invalid exam id');
 }
 
-// Fetch exam + admin name
+// ==== HANDLE ADD QUESTION SUBMIT (modal posts here) ====
+$errors = [];
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_question'])) {
+    try {
+        // Get and validate incoming values
+        $post_exam_id = (int)($_POST['exam_id'] ?? 0);
+        $question_text = trim($_POST['question_text'] ?? '');
+        $type = $_POST['question_type'] ?? '';
+        $marks = (int)($_POST['marks'] ?? 0);
+
+        if ($post_exam_id <= 0) throw new Exception('Invalid exam specified.');
+        if ($question_text === '') throw new Exception('Question text is required.');
+        if ($marks <= 0) throw new Exception('Marks must be greater than zero.');
+
+        // Load exam and ensure it's draft and has total_marks configured
+        $chkExam = $pdo->prepare("SELECT id, total_marks, status FROM exams WHERE id = ? LIMIT 1");
+        $chkExam->execute([$post_exam_id]);
+        $examCheck = $chkExam->fetch(PDO::FETCH_ASSOC);
+        if (!$examCheck) throw new Exception('Exam not found.');
+        if ($examCheck['status'] !== 'draft') throw new Exception('Cannot add questions unless exam is in draft status.');
+        $examTotalMarks = (int)($examCheck['total_marks'] ?? 0);
+        if ($examTotalMarks <= 0) throw new Exception('Exam total marks is not configured. Set total marks before adding questions.');
+
+        // Compute existing marks sum
+        $sumStmt = $pdo->prepare("SELECT COALESCE(SUM(marks),0) FROM questions WHERE exam_id = ?");
+        $sumStmt->execute([$post_exam_id]);
+        $existingMarks = (int)$sumStmt->fetchColumn();
+        if ($existingMarks >= $examTotalMarks) {
+            throw new Exception('Cannot add more questions — exam total marks already reached (' . $examTotalMarks . ').');
+        }
+        $remaining = $examTotalMarks - $existingMarks;
+        if ($marks > $remaining) {
+            throw new Exception("This question ({$marks}) would exceed the exam total. Remaining marks: {$remaining}.");
+        }
+
+        // Validate options / correct answers depending on type (server-side)
+        if (in_array($type, ['single_choice', 'multiple_choice'], true)) {
+            $options = $_POST['options'] ?? [];
+            // trim and keep non-empty options
+            $cleanOptions = [];
+            foreach ($options as $opt) {
+                $t = trim((string)$opt);
+                if ($t !== '') $cleanOptions[] = $t;
+            }
+            if (count($cleanOptions) < 2) throw new Exception('At least two non-empty options are required.');
+            // correct[] expected (checkbox hidden trick ensures presence)
+            $correct = $_POST['correct'] ?? [];
+            if (!is_array($correct)) $correct = [$correct];
+            if ($type === 'single_choice' && count($correct) !== 1) {
+                throw new Exception('Single choice requires exactly one correct option.');
+            }
+            if ($type === 'multiple_choice' && count($correct) < 1) {
+                throw new Exception('Select at least one correct option for multiple choice.');
+            }
+        }
+
+        if ($type === 'true_false') {
+            $correct_tf = $_POST['correct_tf'] ?? '';
+            if ($correct_tf !== 'True' && $correct_tf !== 'False') {
+                throw new Exception('True/False must have a correct answer selected.');
+            }
+        }
+
+        if (in_array($type, ['short_answer', 'fill_blank'], true)) {
+            $correct_answer = trim($_POST['correct_answer'] ?? '');
+            if ($correct_answer === '') throw new Exception('Correct answer is required for text questions.');
+        }
+
+        // Passed all checks -> insert question + options in transaction
+        $pdo->beginTransaction();
+
+        $insQ = $pdo->prepare("INSERT INTO questions (exam_id, question_text, question_type, marks) VALUES (?, ?, ?, ?)");
+        $insQ->execute([$post_exam_id, $question_text, $type, $marks]);
+        $question_id = (int)$pdo->lastInsertId();
+
+        // Insert options according to type into `options` table (exists in your DB)
+        if (in_array($type, ['single_choice', 'multiple_choice'], true)) {
+            $optionsAll = $_POST['options'] ?? [];
+            // we will iterate original options order but skip empties
+            foreach ($optionsAll as $idx => $optText) {
+                $t = trim((string)$optText);
+                if ($t === '') continue;
+                // is_correct: check if index was included in correct[]
+                $is_correct = 0;
+                $correctRaw = $_POST['correct'] ?? [];
+                // normalize to strings
+                $correctStr = array_map('strval', (array)$correctRaw);
+                if (in_array((string)$idx, $correctStr, true)) $is_correct = 1;
+
+                $insOpt = $pdo->prepare("INSERT INTO options (question_id, option_text, is_correct) VALUES (?, ?, ?)");
+                $insOpt->execute([$question_id, $t, $is_correct]);
+            }
+        } elseif ($type === 'true_false') {
+            foreach (['True', 'False'] as $val) {
+                $is_correct = ($_POST['correct_tf'] === $val) ? 1 : 0;
+                $insOpt = $pdo->prepare("INSERT INTO options (question_id, option_text, is_correct) VALUES (?, ?, ?)");
+                $insOpt->execute([$question_id, $val, $is_correct]);
+            }
+        } elseif (in_array($type, ['short_answer','fill_blank'], true)) {
+            $insOpt = $pdo->prepare("INSERT INTO options (question_id, option_text, is_correct) VALUES (?, ?, 1)");
+            $insOpt->execute([$question_id, $correct_answer]);
+        }
+
+        $pdo->commit();
+
+        // success -> set flash and PRG redirect to avoid resubmits
+        $_SESSION['flash'] = 'Question added successfully.';
+        header('Location: exams_view.php?id=' . $post_exam_id);
+        exit;
+
+    } catch (Exception $e) {
+        if ($pdo->inTransaction()) $pdo->rollBack();
+        $errors[] = $e->getMessage();
+        // keep page load and re-open modal with errors
+    }
+}
+
+// ==== END POST HANDLER ====
+
+// Fetch exam + admin name (fresh)
 $stmt = $pdo->prepare("
     SELECT exams.*, users.full_name AS admin_name
     FROM exams
@@ -35,11 +154,19 @@ $attemptsStmt->execute([$exam_id]);
 $attemptCount = (int)$attemptsStmt->fetchColumn();
 ?>
 <?php require '../constants/header.php' ?>
-    <title>View Exam</title>
+<title>View Exam</title>
 </head>
 <body>
 
 <div class="container mt-4">
+
+    <?php if (!empty($_SESSION['flash'])): ?>
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <?= htmlspecialchars($_SESSION['flash']) ?>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        <?php unset($_SESSION['flash']); ?>
+    <?php endif; ?>
 
     <a href="dashboard.php" class="btn btn-secondary mb-3">← Back to Exams</a>
 
@@ -97,7 +224,7 @@ $attemptCount = (int)$attemptsStmt->fetchColumn();
 
             <hr>
 
-            <!-- ACTIONS: Manage Questions | Start / Close | Delete (if safe) | Add Question (modal) -->
+            <!-- ACTIONS -->
             <div class="d-flex gap-2 mb-3">
 
                 <a href="questions.php?exam_id=<?= $exam_id ?>" class="btn btn-primary">
@@ -125,7 +252,7 @@ $attemptCount = (int)$attemptsStmt->fetchColumn();
                     <?php endif; ?>
                 <?php endif; ?>
 
-                <!-- Add Question button: only when exam is draft -->
+                <!-- Add Question button -->
                 <?php if ($exam['status'] === 'draft'): ?>
                     <button class="btn btn-success ms-auto" data-bs-toggle="modal" data-bs-target="#addQuestionModal">
                         + Add Question
@@ -178,13 +305,13 @@ $attemptCount = (int)$attemptsStmt->fetchColumn();
 
 </div>
 
-<!-- Add Question Modal -->
+<!-- Add Question Modal (posts to this same file) -->
 <div class="modal fade" id="addQuestionModal" tabindex="-1" aria-labelledby="addQuestionModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-lg modal-dialog-centered">
     <div class="modal-content">
-      <!-- Posting to add_question.php (server file that handles insertion) -->
-      <form id="addQuestionForm" action="add_question.php" method="POST" class="needs-validation" novalidate>
+      <form id="addQuestionForm" method="POST" class="needs-validation" novalidate>
         <input type="hidden" name="exam_id" value="<?= $exam_id ?>">
+        <input type="hidden" name="add_question" value="1">
         <div class="modal-header">
           <h5 class="modal-title" id="addQuestionModalLabel">Add Question</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -192,11 +319,19 @@ $attemptCount = (int)$attemptsStmt->fetchColumn();
 
         <div class="modal-body">
 
-            <div id="add-errors" class="mb-3"></div>
+            <div id="add-errors" class="mb-3">
+                <?php if ($errors): ?>
+                    <div class="alert alert-danger">
+                        <?php foreach ($errors as $err): ?>
+                            <div><?= htmlspecialchars($err) ?></div>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endif; ?>
+            </div>
 
             <div class="mb-3">
                 <label for="question_text" class="form-label">Question</label>
-                <textarea id="question_text" name="question_text" class="form-control" required></textarea>
+                <textarea id="question_text" name="question_text" class="form-control" required><?= htmlspecialchars($_POST['question_text'] ?? '') ?></textarea>
                 <div class="invalid-feedback">Enter the question text.</div>
             </div>
 
@@ -204,18 +339,18 @@ $attemptCount = (int)$attemptsStmt->fetchColumn();
                 <label for="question_type" class="form-label">Question Type</label>
                 <select name="question_type" id="question_type" class="form-select" required onchange="toggleFields()">
                     <option value="">Select</option>
-                    <option value="single_choice">Multiple Choice (Single)</option>
-                    <option value="multiple_choice">Select All That Apply</option>
-                    <option value="true_false">True / False</option>
-                    <option value="short_answer">Short Answer</option>
-                    <option value="fill_blank">Fill in the Blank</option>
+                    <option value="single_choice" <?= (($_POST['question_type'] ?? '') === 'single_choice') ? 'selected' : '' ?>>Multiple Choice (Single)</option>
+                    <option value="multiple_choice" <?= (($_POST['question_type'] ?? '') === 'multiple_choice') ? 'selected' : '' ?>>Select All That Apply</option>
+                    <option value="true_false" <?= (($_POST['question_type'] ?? '') === 'true_false') ? 'selected' : '' ?>>True / False</option>
+                    <option value="short_answer" <?= (($_POST['question_type'] ?? '') === 'short_answer') ? 'selected' : '' ?>>Short Answer</option>
+                    <option value="fill_blank" <?= (($_POST['question_type'] ?? '') === 'fill_blank') ? 'selected' : '' ?>>Fill in the Blank</option>
                 </select>
                 <div class="invalid-feedback">Select a question type.</div>
             </div>
 
             <div class="mb-3">
                 <label for="marks" class="form-label">Marks</label>
-                <input id="marks" type="number" name="marks" class="form-control" min="1" required>
+                <input id="marks" type="number" name="marks" class="form-control" min="1" required value="<?= htmlspecialchars($_POST['marks'] ?? '') ?>">
                 <div class="invalid-feedback">Enter marks (> 0).</div>
                 <div class="form-text">Exam total marks: <strong><?= htmlspecialchars($exam['total_marks'] ?? 'N/A') ?></strong></div>
             </div>
@@ -224,12 +359,17 @@ $attemptCount = (int)$attemptsStmt->fetchColumn();
             <div id="optionsBox" style="display:none;">
                 <h6>Options</h6>
                 <div id="optionsList">
-                    <?php for ($i=0; $i<4; $i++): ?>
+                    <?php
+                    // If form errored and options were posted, repopulate them
+                    $postedOptions = $_POST['options'] ?? [];
+                    $baseline = max(4, count($postedOptions));
+                    for ($i=0; $i<$baseline; $i++): 
+                        $val = $postedOptions[$i] ?? '';
+                        ?>
                     <div class="input-group mb-2 option-row">
-                        <input type="text" name="options[]" class="form-control" placeholder="Option text">
+                        <input type="text" name="options[]" class="form-control" placeholder="Option text" value="<?= htmlspecialchars($val) ?>">
                         <span class="input-group-text correct-wrap">
-                            <!-- placeholder for correct input (checkbox or radio) -->
-                            <input type="checkbox" name="correct[]" value="<?= $i ?>">
+                            <input type="checkbox" name="correct[]" value="<?= $i ?>" <?= (in_array((string)$i, array_map('strval', (array)($_POST['correct'] ?? []))) ? 'checked' : '') ?>>
                         </span>
                     </div>
                     <?php endfor; ?>
@@ -246,15 +386,15 @@ $attemptCount = (int)$attemptsStmt->fetchColumn();
                 <label class="form-label">Correct Answer</label>
                 <select name="correct_tf" id="correct_tf" class="form-select">
                     <option value="">Select</option>
-                    <option value="True">True</option>
-                    <option value="False">False</option>
+                    <option value="True" <?= (($_POST['correct_tf'] ?? '') === 'True') ? 'selected' : '' ?>>True</option>
+                    <option value="False" <?= (($_POST['correct_tf'] ?? '') === 'False') ? 'selected' : '' ?>>False</option>
                 </select>
             </div>
 
             <!-- Text answer -->
             <div id="answerBox" style="display:none;">
                 <label class="form-label">Correct Answer</label>
-                <input type="text" name="correct_answer" id="correct_answer" class="form-control">
+                <input type="text" name="correct_answer" id="correct_answer" class="form-control" value="<?= htmlspecialchars($_POST['correct_answer'] ?? '') ?>">
             </div>
 
         </div>
@@ -294,19 +434,21 @@ function toggleFields() {
             r.name = 'correct_single';
             r.value = idx;
             r.className = 'form-check-input';
-            // keep a fallback field so server still receives correct[] if needed:
-            // we'll also add a hidden checkbox that server can read as correct[] if present.
+            // hidden checkbox to preserve server friendly correct[] array
             const hidden = document.createElement('input');
             hidden.type = 'checkbox';
             hidden.name = 'correct[]';
             hidden.value = idx;
             hidden.style.display = 'none';
-            // When radio changes, update hidden checkbox states
             r.addEventListener('change', function() {
-                // clear all hidden checkboxes
                 document.querySelectorAll('input[name="correct[]"]').forEach(cb => cb.checked = false);
                 if (r.checked) hidden.checked = true;
             });
+            // preserve checked state from server if present
+            if (document.querySelector('input[name="correct[]"][value="'+idx+'"]')?.checked) {
+                r.checked = true;
+                hidden.checked = true;
+            }
             wrap.appendChild(r);
             wrap.appendChild(hidden);
         } else if (type === 'multiple_choice') {
@@ -315,9 +457,10 @@ function toggleFields() {
             cb.name = 'correct[]';
             cb.value = idx;
             cb.className = 'form-check-input';
+            // preserve checked state from server if present
+            if (document.querySelector('input[name="correct[]"][value="'+idx+'"]')?.checked) cb.checked = true;
             wrap.appendChild(cb);
         } else {
-            // default: no correct option UI
             wrap.innerHTML = '';
         }
     });
@@ -336,26 +479,24 @@ function addOption() {
         </span>
     `;
     list.appendChild(div);
-    // re-run toggleFields to set correct input types according to current question_type
     toggleFields();
 }
 
 function removeOption() {
     const list = document.getElementById('optionsList');
     const rows = list.querySelectorAll('.option-row');
-    if (rows.length <= 2) return; // keep at least 2 options
+    if (rows.length <= 2) return;
     rows[rows.length - 1].remove();
     toggleFields();
 }
 
-/* Client-side form validation */
+/* Client-side form validation and small UX */
 (function () {
   'use strict'
   const form = document.getElementById('addQuestionForm');
   if (!form) return;
 
   form.addEventListener('submit', function (event) {
-    // Allow default HTML5 validation first
     if (!form.checkValidity()) {
       event.preventDefault();
       event.stopPropagation();
@@ -363,7 +504,6 @@ function removeOption() {
       return;
     }
 
-    // Custom validation for options when required
     const type = document.getElementById('question_type').value;
     if (['single_choice','multiple_choice'].includes(type)) {
         const optionInputs = document.querySelectorAll('#optionsList input[name="options[]"]');
@@ -376,7 +516,6 @@ function removeOption() {
             return;
         }
 
-        // ensure at least one correct selected
         const checked = Array.from(document.querySelectorAll('#optionsList input[name="correct[]"]')).some(cb => cb.checked);
         if (!checked) {
             event.preventDefault();
@@ -385,7 +524,6 @@ function removeOption() {
             return;
         }
 
-        // if single_choice ensure exactly one
         if (type === 'single_choice') {
             const checkedCount = Array.from(document.querySelectorAll('#optionsList input[name="correct[]"]')).filter(cb => cb.checked).length;
             if (checkedCount !== 1) {
@@ -417,28 +555,32 @@ function removeOption() {
   }
 })();
 
-/* Ensure options UI is initialized when modal opens */
+/* Initialize modal UI state on show; if server-side errors exist, open modal */
 const addModalEl = document.getElementById('addQuestionModal');
 if (addModalEl) {
     addModalEl.addEventListener('show.bs.modal', function () {
-        // reset form
         const form = document.getElementById('addQuestionForm');
         form.classList.remove('was-validated');
-        form.reset();
         document.getElementById('add-errors').innerHTML = '';
-        // rebuild optionsList to 4 rows baseline
+        // rebuild minimal 4 option rows only if empty
         const list = document.getElementById('optionsList');
-        list.innerHTML = '';
-        for (let i=0;i<4;i++) {
-            const row = document.createElement('div');
-            row.className = 'input-group mb-2 option-row';
-            row.innerHTML = `<input type="text" name="options[]" class="form-control" placeholder="Option text">
-                             <span class="input-group-text correct-wrap"><input type="checkbox" name="correct[]" value="${i}"></span>`;
-            list.appendChild(row);
+        if (!list.querySelector('.option-row')) {
+            for (let i=0;i<4;i++) {
+                const row = document.createElement('div');
+                row.className = 'input-group mb-2 option-row';
+                row.innerHTML = `<input type="text" name="options[]" class="form-control" placeholder="Option text">
+                                 <span class="input-group-text correct-wrap"><input type="checkbox" name="correct[]" value="${i}"></span>`;
+                list.appendChild(row);
+            }
         }
-        // set toggle fields for default state
         toggleFields();
     });
+
+    // If server returned errors (PHP $errors), auto-show modal
+    <?php if (!empty($errors)): ?>
+    var modal = new bootstrap.Modal(addModalEl);
+    modal.show();
+    <?php endif; ?>
 }
 </script>
 
