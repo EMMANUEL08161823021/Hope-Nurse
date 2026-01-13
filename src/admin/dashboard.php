@@ -33,10 +33,17 @@ $recentExamsStmt = $pdo->query("
     LIMIT 5
 ");
 $recentExams = $recentExamsStmt->fetchAll();
+
+// Grab flash (if any) for toast
+$toastMessage = null;
+if (!empty($_SESSION['flash'])) {
+    $toastMessage = (string)$_SESSION['flash'];
+    // We'll unset after rendering so it doesn't reappear
+}
 ?>
 
 <?php require '../constants/header.php'?>
-     <title>Admin Dashboard</title>
+<title>Admin Dashboard</title>
 </head>
 <body>
 
@@ -50,7 +57,7 @@ $recentExams = $recentExamsStmt->fetchAll();
             <div class="card text-center shadow-sm">
                 <div class="card-body">
                     <h6>Total Exams</h6>
-                    <h3><?= $totalExams ?></h3>
+                    <h3><?= (int)$totalExams ?></h3>
                 </div>
             </div>
         </div>
@@ -59,7 +66,7 @@ $recentExams = $recentExamsStmt->fetchAll();
             <div class="card text-center shadow-sm">
                 <div class="card-body">
                     <h6>Active Exams</h6>
-                    <h3><?= $activeExams ?></h3>
+                    <h3><?= (int)$activeExams ?></h3>
                 </div>
             </div>
         </div>
@@ -68,7 +75,7 @@ $recentExams = $recentExamsStmt->fetchAll();
             <div class="card text-center shadow-sm">
                 <div class="card-body">
                     <h6>Total Students</h6>
-                    <h3><?= $totalStudents ?></h3>
+                    <h3><?= (int)$totalStudents ?></h3>
                 </div>
             </div>
         </div>
@@ -77,7 +84,7 @@ $recentExams = $recentExamsStmt->fetchAll();
             <div class="card text-center shadow-sm">
                 <div class="card-body">
                     <h6>Total Questions</h6>
-                    <h3><?= $totalQuestions ?></h3>
+                    <h3><?= (int)$totalQuestions ?></h3>
                 </div>
             </div>
         </div>
@@ -89,23 +96,24 @@ $recentExams = $recentExamsStmt->fetchAll();
             <div class="card text-center shadow-sm">
                 <div class="card-body">
                     <h6>Exam Attempts</h6>
-                    <h3><?= $totalAttempts ?></h3>
+                    <h3><?= (int)$totalAttempts ?></h3>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- QUICK ACTIONS -->
-    <div class="mb-4">
-        <!-- <a href="exams.php" class="btn btn-primary">Manage Exams</a> -->
+    <div class="mb-4 d-flex gap-2 align-items-center">
         <a href="students.php" class="btn btn-secondary">Manage Students</a>
-        <a href="create_exam.php" class="btn btn-success">Create Exam</a>
+        <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#createExamModal">
+            + Create Exam
+        </button>
     </div>
 
     <!-- RECENT EXAMS -->
     <h4>Recent Exams</h4>
 
-    <table class="table table-bordered mt-2">
+    <table class="table table-bordered mt-2" id="recentExamsTable">
         <thead>
             <tr>
                 <th>Title</th>
@@ -124,23 +132,28 @@ $recentExams = $recentExamsStmt->fetchAll();
                     <tr>
                         <td><?= htmlspecialchars($exam['title']) ?></td>
                         <td>
-                            <span class="badge bg-<?=
+                            <span class="badge bg-<?= 
                                 $exam['status'] === 'in_progress' ? 'success' :
                                 ($exam['status'] === 'closed' ? 'danger' : 'secondary')
                             ?>">
-                                <?= ucfirst($exam['status']) ?>
+                                <?= htmlspecialchars(ucfirst($exam['status'])) ?>
                             </span>
                         </td>
-                        <td><?= $exam['created_at'] ?></td>
+                        <td><?= htmlspecialchars($exam['created_at']) ?></td>
                         <td>
-                            <a href="exams_view.php?id=<?= $exam['id'] ?>" class="btn btn-sm btn-outline-primary">
+                            <a href="exams_view.php?id=<?= (int)$exam['id'] ?>" class="btn btn-sm btn-outline-primary">
                                 View
                             </a>
-                            <a href="exam_delete.php?id=<?= $exam['id'] ?>"
-                            class="btn btn-sm btn-danger"
-                            onclick="return confirm('Delete this exam permanently?')">
-                                Delete
-                            </a>
+
+                            <?php if ($exam['status'] !== 'in_progress'): ?>
+                                <a href="exam_delete.php?id=<?= (int)$exam['id'] ?>"
+                                   class="btn btn-sm btn-danger"
+                                   onclick="return confirm('Delete this exam permanently?')">
+                                    Delete
+                                </a>
+                            <?php else: ?>
+                                <button class="btn btn-sm btn-secondary" disabled title="Cannot delete an exam in progress">Delete</button>
+                            <?php endif; ?>
                         </td>
                     </tr>
                 <?php endforeach; ?>
@@ -148,10 +161,123 @@ $recentExams = $recentExamsStmt->fetchAll();
         </tbody>
     </table>
 
-    <a href="../auth/logout.php"class="btn btn-outline-danger">Logout</a>
+    <!-- Toast area (appears below the recent exams table) -->
+    <div class="position-relative">
+        <div id="toastContainer" class="toast-container position-static mt-3">
+            <?php if ($toastMessage): ?>
+                <div id="examToast" class="toast align-items-center text-bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
+                    <div class="d-flex">
+                        <div class="toast-body">
+                            <?= htmlspecialchars($toastMessage) ?>
+                        </div>
+                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                    </div>
+                </div>
+                <?php
+                // clear the flash so it doesn't appear again
+                unset($_SESSION['flash']);
+                ?>
+            <?php endif; ?>
+        </div>
+    </div>
+
+    <a href="../auth/logout.php" class="btn btn-outline-danger mt-4">Logout</a>
 </div>
+
+<!-- Create Exam Modal -->
+<div class="modal fade" id="createExamModal" tabindex="-1" aria-labelledby="createExamModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <form id="createExamForm" action="store_exam.php" method="POST" class="needs-validation" novalidate>
+        <div class="modal-header">
+          <h5 class="modal-title" id="createExamModalLabel">Create Exam</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+
+        <div class="modal-body">
+            <div class="mb-3">
+                <label for="title" class="form-label">Exam Title</label>
+                <input id="title" type="text" name="title" class="form-control" required>
+                <div class="invalid-feedback">Please enter an exam title.</div>
+            </div>
+
+            <div class="mb-3">
+                <label for="description" class="form-label">Description</label>
+                <textarea id="description" name="description" class="form-control" rows="3"></textarea>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="duration" class="form-label">Duration (minutes)</label>
+                    <input id="duration" type="number" name="duration" class="form-control" min="1" required>
+                    <div class="invalid-feedback">Enter duration in minutes (min 1).</div>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label for="total_marks" class="form-label">Total Marks</label>
+                    <input id="total_marks" type="number" name="total_marks" class="form-control" min="0" required>
+                    <div class="invalid-feedback">Enter total marks for this exam.</div>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label for="status" class="form-label">Status</label>
+                <select id="status" name="status" class="form-select" required>
+                    <option value="draft" selected>Draft</option>
+                    <option value="in_progress">In Progress</option>
+                    <option value="closed">Closed</option>
+                </select>
+                <div class="invalid-feedback">Please select a status.</div>
+            </div>
+
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Create Exam</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Bootstrap JS: adjust path if your assets live elsewhere -->
+<script src="../../public/assets/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+(function () {
+  'use strict';
+
+  // Client-side validation for the modal form
+  const form = document.getElementById('createExamForm');
+  if (form) {
+    form.addEventListener('submit', function (event) {
+      if (!form.checkValidity()) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+      form.classList.add('was-validated');
+    }, false);
+  }
+
+  // Focus title input when modal is shown
+  const createModal = document.getElementById('createExamModal');
+  if (createModal) {
+    createModal.addEventListener('shown.bs.modal', function () {
+      const titleInput = document.getElementById('title');
+      if (titleInput) titleInput.focus();
+    });
+  }
+
+  // If a toast exists on the page, show it (this displays the "Exam created" message)
+  const toastEl = document.getElementById('examToast');
+  if (toastEl) {
+    const toast = new bootstrap.Toast(toastEl, { delay: 4000 });
+    toast.show();
+  }
+
+})();
+</script>
 
 </body>
 </html>
-
-
