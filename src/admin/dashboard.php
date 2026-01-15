@@ -27,11 +27,12 @@ try {
 
 // Recent exams
 $recentExamsStmt = $pdo->query("
-    SELECT id, title, status, created_at 
+    SELECT id, title, description, duration, total_marks, status, created_at 
     FROM exams 
     ORDER BY created_at DESC 
     LIMIT 5
 ");
+
 $recentExams = $recentExamsStmt->fetchAll();
 
 // Grab flash (if any) for toast
@@ -41,6 +42,8 @@ if (!empty($_SESSION['flash'])) {
     // We'll unset after rendering so it doesn't reappear
 }
 ?>
+
+
 
 <?php require '../constants/header.php'?>
 <title>Admin Dashboard</title>
@@ -154,6 +157,17 @@ if (!empty($_SESSION['flash'])) {
                             <?php else: ?>
                                 <button class="btn btn-sm btn-secondary" disabled title="Cannot delete an exam in progress">Delete</button>
                             <?php endif; ?>
+                            <button class="btn btn-warning btn-sm edit-exam-btn"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#editExamModal"
+                                    data-id="<?= (int)$exam['id'] ?>"
+                                    data-title="<?= htmlspecialchars($exam['title'], ENT_QUOTES) ?>"
+                                    data-description="<?= htmlspecialchars($exam['description'] ?? '', ENT_QUOTES) ?>"
+                                    data-duration="<?= (int)$exam['duration'] ?>"
+                                    data-total="<?= (int)$exam['total_marks'] ?>">
+                                Edit Exam
+                            </button>
+
                         </td>
                     </tr>
                 <?php endforeach; ?>
@@ -183,6 +197,8 @@ if (!empty($_SESSION['flash'])) {
 
     <a href="../auth/logout.php" class="btn btn-outline-danger mt-4">Logout</a>
 </div>
+
+
 
 <!-- Create Exam Modal -->
 <div class="modal fade" id="createExamModal" tabindex="-1" aria-labelledby="createExamModalLabel" aria-hidden="true">
@@ -241,8 +257,72 @@ if (!empty($_SESSION['flash'])) {
   </div>
 </div>
 
+<!-- Edit Exam Modal -->
+<div class="modal fade" id="editExamModal" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+
+      <form method="POST" action="exam_edit.php" class="needs-validation" novalidate>
+        <input type="hidden" name="exam_id" id="edit_exam_id">
+
+        <div class="modal-header">
+          <h5 class="modal-title">Edit Exam</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+
+        <div class="modal-body">
+
+          <div class="mb-3">
+            <label class="form-label">Exam Title</label>
+            <input type="text" id="edit_title" name="title" class="form-control" required>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Description</label>
+            <textarea id="edit_description" name="description" class="form-control"></textarea>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Duration (minutes)</label>
+            <input type="number" id="edit_duration" name="duration" class="form-control" min="1" required>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Total Marks</label>
+            <input type="number" id="edit_total" name="total_marks" class="form-control" min="0" required>
+          </div>
+
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button class="btn btn-warning" type="submit">Save Changes</button>
+        </div>
+
+      </form>
+
+    </div>
+  </div>
+</div>
+
+
+
 <!-- Bootstrap JS: adjust path if your assets live elsewhere -->
 <script src="../../public/assets/dist/js/bootstrap.bundle.min.js"></script>
+
+
+<script>
+document.querySelectorAll('.edit-exam-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.getElementById('edit_exam_id').value = btn.dataset.id;
+        document.getElementById('edit_title').value = btn.dataset.title;
+        document.getElementById('edit_description').value = btn.dataset.description;
+        document.getElementById('edit_duration').value = btn.dataset.duration;
+        document.getElementById('edit_total').value = btn.dataset.total;
+    });
+});
+</script>
+
 
 <script>
 (function () {

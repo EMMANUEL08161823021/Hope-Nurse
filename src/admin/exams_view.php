@@ -152,6 +152,69 @@ $totalQuestions = (int)$qCountStmt->fetchColumn();
 $attemptsStmt = $pdo->prepare("SELECT COUNT(*) FROM attempts WHERE exam_id = ?");
 $attemptsStmt->execute([$exam_id]);
 $attemptCount = (int)$attemptsStmt->fetchColumn();
+
+
+
+// ==== HANDLE EDIT EXAM ====
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_exam'])) {
+    try {
+        $exam_id = (int)$_POST['exam_id'];
+        $title = trim($_POST['title']);
+        $description = trim($_POST['description']);
+        $duration = (int)$_POST['duration'];
+        $total_marks = (int)$_POST['total_marks'];
+
+        if ($title === '') throw new Exception('Title is required.');
+        if ($duration <= 0) throw new Exception('Duration must be greater than zero.');
+        if ($total_marks <= 0) throw new Exception('Total marks must be greater than zero.');
+
+        // Check exam status
+        $stmt = $pdo->prepare("SELECT status FROM exams WHERE id = ?");
+        $stmt->execute([$exam_id]);
+        $status = $stmt->fetchColumn();
+
+        if ($status !== 'draft') {
+            throw new Exception('Only draft exams can be edited.');
+        }
+
+        // Check question marks sum
+        $sumStmt = $pdo->prepare("
+            SELECT COALESCE(SUM(marks),0)
+            FROM questions
+            WHERE exam_id = ?
+        ");
+        $sumStmt->execute([$exam_id]);
+        $questionMarks = (int)$sumStmt->fetchColumn();
+
+        if ($total_marks < $questionMarks) {
+            throw new Exception(
+                "Total marks cannot be less than existing question marks ({$questionMarks})."
+            );
+        }
+
+        // Update exam
+        $update = $pdo->prepare("
+            UPDATE exams
+            SET title = ?, description = ?, duration = ?, total_marks = ?
+            WHERE id = ?
+        ");
+        $update->execute([
+            $title,
+            $description,
+            $duration,
+            $total_marks,
+            $exam_id
+        ]);
+
+        $_SESSION['flash'] = 'Exam updated successfully.';
+        header("Location: exams_view.php?id=$exam_id");
+        exit;
+
+    } catch (Exception $e) {
+        $editErrors[] = $e->getMessage();
+    }
+}
+
 ?>
 <?php require '../constants/header.php' ?>
 <title>View Exam</title>
@@ -223,6 +286,8 @@ $attemptCount = (int)$attemptsStmt->fetchColumn();
             </div>
 
             <hr>
+
+            
 
             <!-- ACTIONS -->
             <div class="d-flex gap-2 mb-3">
