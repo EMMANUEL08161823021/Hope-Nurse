@@ -116,6 +116,25 @@ if (!empty($_SESSION['flash'])) {
     <!-- RECENT EXAMS -->
     <h4>Recent Exams</h4>
 
+    <!-- Toast area (appears below the recent exams table) -->
+    <div class="position-relative">
+        <div id="toastContainer" class="toast-container position-static mt-3">
+            <?php if ($toastMessage): ?>
+                <div id="examToast" class="toast align-items-center text-bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
+                    <div class="d-flex">
+                        <div class="toast-body">
+                            <?= htmlspecialchars($toastMessage) ?>
+                        </div>
+                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                    </div>
+                </div>
+                <?php
+                // clear the flash so it doesn't appear again
+                unset($_SESSION['flash']);
+                ?>
+            <?php endif; ?>
+        </div>
+    </div>
     <table class="table table-bordered mt-2" id="recentExamsTable">
         <thead>
             <tr>
@@ -175,25 +194,6 @@ if (!empty($_SESSION['flash'])) {
         </tbody>
     </table>
 
-    <!-- Toast area (appears below the recent exams table) -->
-    <div class="position-relative">
-        <div id="toastContainer" class="toast-container position-static mt-3">
-            <?php if ($toastMessage): ?>
-                <div id="examToast" class="toast align-items-center text-bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
-                    <div class="d-flex">
-                        <div class="toast-body">
-                            <?= htmlspecialchars($toastMessage) ?>
-                        </div>
-                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
-                    </div>
-                </div>
-                <?php
-                // clear the flash so it doesn't appear again
-                unset($_SESSION['flash']);
-                ?>
-            <?php endif; ?>
-        </div>
-    </div>
 
     <a href="../auth/logout.php" class="btn btn-outline-danger mt-4">Logout</a>
 </div>
@@ -262,7 +262,7 @@ if (!empty($_SESSION['flash'])) {
   <div class="modal-dialog modal-lg modal-dialog-centered">
     <div class="modal-content">
 
-      <form method="POST" action="exam_edit.php" class="needs-validation" novalidate>
+      <form method="POST" action="edit_exam.php" class="needs-validation" novalidate>
         <input type="hidden" name="exam_id" id="edit_exam_id">
 
         <div class="modal-header">
