@@ -14,9 +14,9 @@ if ($attempt_id <= 0) {
 }
 
 /*
-|--------------------------------------------------------------------------
+|-------------------------------------------------------------------------- 
 | Fetch attempt + exam info (secure: student-owned only)
-|--------------------------------------------------------------------------
+|-------------------------------------------------------------------------- 
 */
 $stmt = $pdo->prepare("
     SELECT 
@@ -42,47 +42,66 @@ if (!$attempt) {
 }
 
 /*
-|--------------------------------------------------------------------------
-| Fetch answers (robust to answer column naming)
-|--------------------------------------------------------------------------
+|-------------------------------------------------------------------------- 
+| Detect which column contains the answer in the answers table.
+| Use INFORMATION_SCHEMA.COLUMNS so we can use parameters safely.
+|-------------------------------------------------------------------------- 
 */
-$answerColumn = null;
 $possibleCols = ['answer', 'answer_text', 'response'];
 
+// fetch existing columns for the 'answers' table in the current database
+$colsStmt = $pdo->prepare("
+    SELECT COLUMN_NAME
+    FROM INFORMATION_SCHEMA.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE()
+      AND TABLE_NAME = 'answers'
+");
+$colsStmt->execute();
+$existingCols = $colsStmt->fetchAll(PDO::FETCH_COLUMN);
+
+$answerColumn = null;
 foreach ($possibleCols as $col) {
-    $check = $pdo->prepare("SHOW COLUMNS FROM answers LIKE ?");
-    $check->execute([$col]);
-    if ($check->fetch()) {
+    if (in_array($col, $existingCols, true)) {
         $answerColumn = $col;
         break;
     }
 }
 
 if (!$answerColumn) {
-    die('Answers table exists but no readable answer column was found.');
+    die('Answers table exists but no readable answer column was found. Expected one of: ' . implode(', ', $possibleCols));
 }
 
-$ans = $pdo->prepare("
+/*
+|-------------------------------------------------------------------------- 
+| Fetch answers (robust to answer column naming)
+|-------------------------------------------------------------------------- 
+*/
+$sql = "
     SELECT 
         q.question_text,
         q.question_type,
-        an.$answerColumn AS answer,
+        an.{$answerColumn} AS answer,
         an.is_correct,
         an.awarded_marks
     FROM answers an
     JOIN questions q ON an.question_id = q.id
     WHERE an.attempt_id = ?
     ORDER BY an.id ASC
-");
+";
+$ans = $pdo->prepare($sql);
 $ans->execute([$attempt_id]);
 $answers = $ans->fetchAll(PDO::FETCH_ASSOC);
+
+/* Helper to render dates safely */
+function fmtDate($d) {
+    if (!$d) return '—';
+    $ts = strtotime($d);
+    if ($ts === false) return htmlspecialchars($d);
+    return date('Y-m-d H:i', $ts);
+}
 ?>
-<!doctype html>
-<html lang="en">
-<head>
-    <meta charset="utf-8">
+<?php require '../constants/header.php'?>
     <title>Exam Result</title>
-    <link rel="stylesheet" href="/assets/bootstrap.min.css">
 </head>
 <body class="container py-4">
 
@@ -107,14 +126,14 @@ $answers = $ans->fetchAll(PDO::FETCH_ASSOC);
 
         <p class="mb-2">
             <strong>Status:</strong>
-            <span class="badge bg-<?= $attempt['status'] === 'completed' ? 'success' : 'secondary' ?>">
+            <span class="badge bg-<?= ($attempt['status'] === 'completed') ? 'success' : 'secondary' ?>">
                 <?= htmlspecialchars(ucfirst($attempt['status'])) ?>
             </span>
         </p>
 
         <p class="mb-0">
             <strong>Date Taken:</strong>
-            <?= htmlspecialchars($attempt['submitted_at'] ?? $attempt['created_at']) ?>
+            <?= htmlspecialchars(fmtDate($attempt['submitted_at'] ?? $attempt['created_at'])) ?>
         </p>
     </div>
 </div>
@@ -130,44 +149,61 @@ $answers = $ans->fetchAll(PDO::FETCH_ASSOC);
     </div>
 <?php else: ?>
 
-<?php foreach ($answers as $a): ?>
-    <div class="mb-3 p-3 border rounded">
-        <div class="mb-1">
-            <strong>Question:</strong>
-            <?= htmlspecialchars($a['question_text']) ?>
-        </div>
+    <?php foreach ($answers as $a): ?>
+        <div class="mb-3 p-3 border rounded">
+            <div class="mb-1">
+                <strong>Question:</strong>
+                <?= nl2br(htmlspecialchars($a['question_text'])) ?>
+            </div>
 
-        <div class="mb-1">
-            <strong>Your Answer:</strong>
-            <?php
-                $raw = (string)($a['answer'] ?? '');
-                $decoded = json_decode($raw, true);
+            <div class="mb-1">
+                <strong>Your Answer:</strong>
+                <?php
+                    $raw = (string)($a['answer'] ?? '');
+                    $decoded = json_decode($raw, true);
 
-                if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
-                    echo htmlspecialchars(implode(', ', $decoded));
-                } else {
-                    echo htmlspecialchars($raw);
-                }
-            ?>
-        </div>
+                    if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                        // join arrays (e.g., checklist answers)
+                        echo htmlspecialchars(implode(', ', $decoded));
+                    } else {
+                        echo htmlspecialchars($raw);
+                    }
+                ?>
+            </div>
 
-        <div class="mb-1">
-            <strong>Correct:</strong>
-            <?php if ($a['is_correct'] === null): ?>
-                —
-            <?php elseif ($a['is_correct']): ?>
-                <span class="text-success">Yes</span>
-            <?php else: ?>
-                <span class="text-danger">No</span>
-            <?php endif; ?>
-        </div>
+            <div class="mb-1">
+                <strong>Correct:</strong>
+                <?php
+                    // Normalize various DB representations of boolean (0/1, '0'/'1', true/false)
+                    $isCorrect = $a['is_correct'];
+                    $isCorrectBool = null;
+                    if ($isCorrect === null || $isCorrect === '') {
+                        $isCorrectBool = null;
+                    } else {
+                        // treat '1', 1, 'true', true as true
+                        $isCorrectBool = filter_var($isCorrect, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+                        // FILTER_VALIDATE_BOOLEAN returns null for non-boolean-like strings when using FLAG; handle fallback:
+                        if ($isCorrectBool === null) {
+                            $isCorrectBool = ($isCorrect == 1 || strtolower((string)$isCorrect) === 'true');
+                        }
+                    }
+                ?>
 
-        <div>
-            <strong>Marks Awarded:</strong>
-            <?= number_format((float)($a['awarded_marks'] ?? 0), 2) ?>
+                <?php if ($isCorrectBool === null): ?>
+                    &mdash;
+                <?php elseif ($isCorrectBool): ?>
+                    <span class="text-success">Yes</span>
+                <?php else: ?>
+                    <span class="text-danger">No</span>
+                <?php endif; ?>
+            </div>
+
+            <div>
+                <strong>Marks Awarded:</strong>
+                <?= number_format((float)($a['awarded_marks'] ?? 0), 2) ?>
+            </div>
         </div>
-    </div>
-<?php endforeach; ?>
+    <?php endforeach; ?>
 
 <?php endif; ?>
 

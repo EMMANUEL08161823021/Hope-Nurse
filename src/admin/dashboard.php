@@ -163,19 +163,26 @@ if (!empty($_SESSION['flash'])) {
                         </td>
                         <td><?= htmlspecialchars($exam['created_at']) ?></td>
                         <td>
+                            <!-- View exam details -->
                             <a href="exams_view.php?id=<?= (int)$exam['id'] ?>" class="btn btn-sm btn-outline-primary">
                                 View
                             </a>
 
+                            <!-- RESULTS: show students who attempted this exam -->
+            
+                            <a href="exam_results.php?exam_id=<?= (int)$exam['id'] ?>" class="btn btn-sm btn-info">Results</a>
+
+
                             <?php if ($exam['status'] !== 'in_progress'): ?>
                                 <a href="exam_delete.php?id=<?= (int)$exam['id'] ?>"
-                                   class="btn btn-sm btn-danger"
-                                   onclick="return confirm('Delete this exam permanently?')">
+                                class="btn btn-sm btn-danger"
+                                onclick="return confirm('Delete this exam permanently?')">
                                     Delete
                                 </a>
                             <?php else: ?>
                                 <button class="btn btn-sm btn-secondary" disabled title="Cannot delete an exam in progress">Delete</button>
                             <?php endif; ?>
+
                             <button class="btn btn-warning btn-sm edit-exam-btn"
                                     data-bs-toggle="modal"
                                     data-bs-target="#editExamModal"
@@ -186,8 +193,8 @@ if (!empty($_SESSION['flash'])) {
                                     data-total="<?= (int)$exam['total_marks'] ?>">
                                 Edit Exam
                             </button>
-
                         </td>
+
                     </tr>
                 <?php endforeach; ?>
             <?php endif; ?>
