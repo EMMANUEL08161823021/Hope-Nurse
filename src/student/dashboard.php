@@ -28,8 +28,8 @@ requireRole('student');
                     <p class="card-text">
                         Review completed exams and scores.
                     </p>
-                    <a href="result.php" class="btn btn-secondary">
-                        View Results
+                    <a href="results.php" class="btn btn-primary">
+                        My Results
                     </a>
                 </div>
             </div>

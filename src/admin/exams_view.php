@@ -186,10 +186,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_exam'])) {
         $sumStmt->execute([$exam_id]);
         $questionMarks = (int)$sumStmt->fetchColumn();
 
-        if ($total_marks < $questionMarks) {
-            throw new Exception(
-                "Total marks cannot be less than existing question marks ({$questionMarks})."
-            );
+       if ($total_marks < $questionMarks) {
+            $_SESSION['flash_error'] =
+                "Total marks cannot be less than existing question marks ({$questionMarks}).";
+            header("Location: exams_view.php?id={$exam_id}");
+            exit;
         }
 
         // Update exam

@@ -1,72 +1,179 @@
 <?php
+// src/student/result.php
+
 require_once '../middleware/auth.php';
 requireRole('student');
 require_once '../config/db.php';
 
 $attempt_id = (int)($_GET['attempt_id'] ?? 0);
-$student_id = $_SESSION['user']['id'];
+$student_id = (int)($_SESSION['user']['id'] ?? 0);
 
 if ($attempt_id <= 0) {
-    die('Invalid attempt ID');
+    http_response_code(400);
+    die('Invalid attempt ID.');
 }
 
+/*
+|--------------------------------------------------------------------------
+| Fetch attempt + exam info (secure: student-owned only)
+|--------------------------------------------------------------------------
+*/
 $stmt = $pdo->prepare("
-    SELECT a.*, e.title
+    SELECT 
+        a.id,
+        a.score,
+        a.status,
+        a.created_at,
+        a.started_at,
+        a.submitted_at,
+        e.title,
+        e.total_marks
     FROM attempts a
     JOIN exams e ON a.exam_id = e.id
     WHERE a.id = ? AND a.student_id = ?
+    LIMIT 1
 ");
 $stmt->execute([$attempt_id, $student_id]);
 $attempt = $stmt->fetch(PDO::FETCH_ASSOC);
 
 if (!$attempt) {
+    http_response_code(404);
     die('Result not found or access denied.');
+}
+
+/*
+|--------------------------------------------------------------------------
+| Fetch answers (robust to answer column naming)
+|--------------------------------------------------------------------------
+*/
+$answerColumn = null;
+$possibleCols = ['answer', 'answer_text', 'response'];
+
+foreach ($possibleCols as $col) {
+    $check = $pdo->prepare("SHOW COLUMNS FROM answers LIKE ?");
+    $check->execute([$col]);
+    if ($check->fetch()) {
+        $answerColumn = $col;
+        break;
+    }
+}
+
+if (!$answerColumn) {
+    die('Answers table exists but no readable answer column was found.');
 }
 
 $ans = $pdo->prepare("
     SELECT 
         q.question_text,
         q.question_type,
-        an.answer,
+        an.$answerColumn AS answer,
         an.is_correct,
         an.awarded_marks
     FROM answers an
     JOIN questions q ON an.question_id = q.id
     WHERE an.attempt_id = ?
+    ORDER BY an.id ASC
 ");
 $ans->execute([$attempt_id]);
 $answers = $ans->fetchAll(PDO::FETCH_ASSOC);
 ?>
-<!DOCTYPE html>
-<html>
+<!doctype html>
+<html lang="en">
 <head>
+    <meta charset="utf-8">
     <title>Exam Result</title>
     <link rel="stylesheet" href="/assets/bootstrap.min.css">
 </head>
 <body class="container py-4">
 
-<h3>Result — <?= htmlspecialchars($attempt['title']) ?></h3>
+<!-- =======================
+     EXAM SUMMARY
+======================== -->
+<h3 class="mb-3">Exam Result</h3>
 
-<p>
-    <strong>Score:</strong> <?= $attempt['score'] ?><br>
-    <strong>Status:</strong> <?= htmlspecialchars($attempt['status']) ?>
-</p>
+<div class="card mb-4 shadow-sm">
+    <div class="card-body">
+        <h5 class="card-title">
+            <?= htmlspecialchars($attempt['title']) ?>
+        </h5>
 
-<hr>
+        <p class="mb-2">
+            <strong>Score:</strong>
+            <?= (int)$attempt['score'] ?>
+            <?php if (!empty($attempt['total_marks'])): ?>
+                / <?= (int)$attempt['total_marks'] ?>
+            <?php endif; ?>
+        </p>
 
-<?php if (!$answers): ?>
-    <div class="alert alert-warning">No answers recorded.</div>
-<?php endif; ?>
+        <p class="mb-2">
+            <strong>Status:</strong>
+            <span class="badge bg-<?= $attempt['status'] === 'completed' ? 'success' : 'secondary' ?>">
+                <?= htmlspecialchars(ucfirst($attempt['status'])) ?>
+            </span>
+        </p>
+
+        <p class="mb-0">
+            <strong>Date Taken:</strong>
+            <?= htmlspecialchars($attempt['submitted_at'] ?? $attempt['created_at']) ?>
+        </p>
+    </div>
+</div>
+
+<!-- =======================
+     ANSWERS BREAKDOWN
+======================== -->
+<h5 class="mb-3">Answer Breakdown</h5>
+
+<?php if (empty($answers)): ?>
+    <div class="alert alert-warning">
+        No answers were recorded for this exam.
+    </div>
+<?php else: ?>
 
 <?php foreach ($answers as $a): ?>
     <div class="mb-3 p-3 border rounded">
-        <div><strong>Question:</strong> <?= htmlspecialchars($a['question_text']) ?></div>
-        <div><strong>Your answer:</strong> <?= htmlspecialchars($a['answer']) ?></div>
-        <div><strong>Marks awarded:</strong> <?= $a['awarded_marks'] ?></div>
+        <div class="mb-1">
+            <strong>Question:</strong>
+            <?= htmlspecialchars($a['question_text']) ?>
+        </div>
+
+        <div class="mb-1">
+            <strong>Your Answer:</strong>
+            <?php
+                $raw = (string)($a['answer'] ?? '');
+                $decoded = json_decode($raw, true);
+
+                if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                    echo htmlspecialchars(implode(', ', $decoded));
+                } else {
+                    echo htmlspecialchars($raw);
+                }
+            ?>
+        </div>
+
+        <div class="mb-1">
+            <strong>Correct:</strong>
+            <?php if ($a['is_correct'] === null): ?>
+                —
+            <?php elseif ($a['is_correct']): ?>
+                <span class="text-success">Yes</span>
+            <?php else: ?>
+                <span class="text-danger">No</span>
+            <?php endif; ?>
+        </div>
+
+        <div>
+            <strong>Marks Awarded:</strong>
+            <?= number_format((float)($a['awarded_marks'] ?? 0), 2) ?>
+        </div>
     </div>
 <?php endforeach; ?>
 
-<a href="dashboard.php" class="btn btn-secondary mt-3">Back to Dashboard</a>
+<?php endif; ?>
+
+<a href="dashboard.php" class="btn btn-secondary mt-4">
+    Back to Dashboard
+</a>
 
 </body>
 </html>
