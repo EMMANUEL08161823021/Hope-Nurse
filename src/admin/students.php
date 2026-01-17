@@ -47,7 +47,6 @@ $students = $stmt->fetchAll(PDO::FETCH_ASSOC);
             <tr>
                 <th>Name</th>
                 <th>Email</th>
-                <th>Score</th>
                 <th>Status</th>
                 <th>Registered</th>
                 <th width="30%">Actions</th>
@@ -64,19 +63,6 @@ $students = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 <tr>
                     <td><?= htmlspecialchars($s['full_name']) ?></td>
                     <td><?= htmlspecialchars($s['email']) ?></td>
-
-                    <td>
-                        <?php
-                        // latest_score might be NULL
-                        if ($s['latest_score'] === null) {
-                            echo '<span class="text-muted">—</span>';
-                        } else {
-                            // format numeric score nicely
-                            echo htmlspecialchars((string)$s['latest_score']);
-                        }
-                        ?>
-                    </td>
-
                     <td>
                         <span class="badge bg-<?= $s['status'] === 'active' ? 'success' : 'danger' ?>">
                             <?= htmlspecialchars(ucfirst($s['status'])) ?>
