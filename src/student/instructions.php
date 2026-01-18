@@ -29,11 +29,11 @@ if (!$exam) { die('Exam not found'); }
     <li>Do not refresh the page — answers are autosaved.</li>
   </ul>
 
-<form method="post" action="../api/start_attempt.php">
-  <input type="hidden" name="exam_id" value="<?= (int)$exam_id ?>">
-  <button class="btn btn-primary">Start Exam</button>
-  <a href="dashboard.php" class="btn btn-secondary">Back</a>
-</form>
+  <form method="post" action="../api/start_attempt.php">
+    <input type="hidden" name="exam_id" value="<?= (int)$exam_id ?>">
+    <button class="btn btn-primary">Start Exam</button>
+    <a href="dashboard.php" class="btn btn-secondary">Back</a>
+  </form>
 
 </body>
 </html>

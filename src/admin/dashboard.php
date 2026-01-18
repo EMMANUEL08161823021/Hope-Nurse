@@ -105,16 +105,20 @@ if (!empty($_SESSION['flash'])) {
         </div>
     </div>
 
-    <!-- QUICK ACTIONS -->
-    <div class="mb-4 d-flex gap-2 align-items-center">
-        <a href="students.php" class="btn btn-secondary">Manage Students</a>
-        <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#createExamModal">
-            + Create Exam
-        </button>
+    <div class="d-flex justify-content-between">
+        <h4>Recent Exams</h4>
+
+        <!-- QUICK ACTIONS -->
+        <div class="d-flex gap-2 align-items-center">
+            <a href="students.php" class="btn btn-secondary">Manage Students</a>
+            <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#createExamModal">
+                + Create Exam
+            </button>
+        </div>
     </div>
 
+
     <!-- RECENT EXAMS -->
-    <h4>Recent Exams</h4>
 
     <!-- Toast area (appears below the recent exams table) -->
     <div class="position-relative">

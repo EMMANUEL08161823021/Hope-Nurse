@@ -292,16 +292,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_exam'])) {
 
             <!-- ACTIONS -->
             <div class="d-flex gap-2 mb-3">
-
-                <a href="questions.php?exam_id=<?= $exam_id ?>" class="btn btn-primary">
-                    Manage Questions
-                </a>
-
-                <a href="exam_toggle.php?id=<?= $exam_id ?>&action=start"
-                   class="btn btn-success">Start Exam</a>
-
-                <a href="exam_toggle.php?id=<?= $exam_id ?>&action=close"
-                   class="btn btn-danger">Close Exam</a>
+                <form method="post" action="exam_toggle.php" class="d-inline-block" onsubmit="return confirmStatusChange(this);">
+                    <input type="hidden" name="exam_id" value="<?= (int)$exam_id ?>">
+                    <div class="input-group">
+                        <select name="status" class="form-select form-select-sm" aria-label="Change status">
+                            <option value="draft" <?= $exam['status'] === 'draft' ? 'selected' : '' ?>>Draft</option>
+                            <option value="in_progress" <?= $exam['status'] === 'in_progress' ? 'selected' : '' ?>>In Progress</option>
+                            <option value="closed" <?= $exam['status'] === 'closed' ? 'selected' : '' ?>>Closed</option>
+                        </select>
+                        <button type="submit" class="btn btn-outline-primary btn-sm">Change</button>
+                    </div>
+                </form>
 
                 <?php if ($exam['status'] !== 'in_progress'): ?>
                     <?php if ($attemptCount === 0): ?>
@@ -647,6 +648,12 @@ if (addModalEl) {
     var modal = new bootstrap.Modal(addModalEl);
     modal.show();
     <?php endif; ?>
+}
+
+function confirmStatusChange(form) {
+    var sel = form.querySelector('select[name="status"]');
+    var chosen = sel.options[sel.selectedIndex].text;
+    return confirm('Change exam status to "' + chosen + '"?');
 }
 </script>
 

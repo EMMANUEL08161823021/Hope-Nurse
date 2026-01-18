@@ -51,7 +51,7 @@ if ($exam_id <= 0) {
         header('Content-Type: application/json', true, 400);
         echo json_encode(['error' => 'Missing or invalid exam_id']);
     } else {
-        header('Location: ../student/exams.php');
+        header('Location: ../student/exam.php');
     }
     exit;
 }
@@ -68,7 +68,7 @@ try {
             echo json_encode(['error' => 'Exam not available']);
         } else {
             // redirect back to exams list with a message (you can enhance with flash)
-            header('Location: ../student/exams.php');
+            header('Location: ../student/exam.php');
         }
         exit;
     }
@@ -106,7 +106,7 @@ try {
                 echo json_encode(['error' => 'You have already completed this exam.']);
             } else {
                 // could redirect with a flash message
-                header('Location: ../student/exams.php');
+                header('Location: ../student/exam.php');
             }
             exit;
         }
