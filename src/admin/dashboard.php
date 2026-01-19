@@ -27,13 +27,17 @@ try {
 
 // Recent exams
 $recentExamsStmt = $pdo->query("
-    SELECT id, title, description, duration, total_marks, status, created_at 
-    FROM exams 
-    ORDER BY created_at DESC 
-    LIMIT 5
+    SELECT e.id, e.duration, e.total_marks, e.status, e.created_at,
+           e.program_id, e.course_id,
+           p.name AS program_name,
+           c.title AS course_title
+    FROM exams e
+    LEFT JOIN programs p ON e.program_id = p.id
+    LEFT JOIN courses c ON e.course_id = c.id
+    ORDER BY e.created_at DESC
+    LIMIT 50
 ");
-
-$recentExams = $recentExamsStmt->fetchAll();
+$recentExams = $recentExamsStmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Grab flash (if any) for toast
 $toastMessage = null;
@@ -150,7 +154,9 @@ try {
     <table class="table table-bordered mt-2" id="recentExamsTable">
         <thead>
             <tr>
-                <th>Title</th>
+                <th>Program / Course</th>
+                <th>Duration</th>
+                <th>Total Marks</th>
                 <th>Status</th>
                 <th>Created</th>
                 <th>Action</th>
@@ -159,32 +165,41 @@ try {
         <tbody>
             <?php if (count($recentExams) === 0): ?>
                 <tr>
-                    <td colspan="4" class="text-center">No exams found</td>
+                    <td colspan="6" class="text-center">No exams found</td>
                 </tr>
             <?php else: ?>
                 <?php foreach ($recentExams as $exam): ?>
                     <tr>
-                        <td><?= htmlspecialchars($exam['title']) ?></td>
+                        <td>
+                            <div class="fw-semibold"><?= htmlspecialchars($exam['program_name'] ?? '—') ?></div>
+                            <div class="small text-muted"><?= htmlspecialchars($exam['course_title'] ?? '—') ?></div>
+                        </td>
+
+                        <td><?= (int)($exam['duration'] ?? 0) ?> min</td>
+
+                        <td><?= (int)($exam['total_marks'] ?? 0) ?></td>
+
                         <td>
                             <span class="badge bg-<?= 
-                                $exam['status'] === 'in_progress' ? 'success' :
-                                ($exam['status'] === 'closed' ? 'danger' : 'secondary')
+                                ($exam['status'] === 'in_progress') ? 'success' :
+                                (($exam['status'] === 'closed') ? 'danger' : 'secondary')
                             ?>">
-                                <?= htmlspecialchars(ucfirst($exam['status'])) ?>
+                                <?= htmlspecialchars(ucfirst($exam['status'] ?? '')) ?>
                             </span>
                         </td>
-                        <td><?= htmlspecialchars($exam['created_at']) ?></td>
-                        <td>
+
+                        <td><?= htmlspecialchars($exam['created_at'] ?? '') ?></td>
+
+                        <td class="text-nowrap">
                             <!-- View exam details -->
                             <a href="exams_view.php?id=<?= (int)$exam['id'] ?>" class="btn btn-sm btn-outline-primary">
                                 View
                             </a>
 
-                            <!-- RESULTS: show students who attempted this exam -->
-            
+                            <!-- Results -->
                             <a href="exam_results.php?exam_id=<?= (int)$exam['id'] ?>" class="btn btn-sm btn-info">Results</a>
 
-
+                            <!-- Delete (keeps your existing protection) -->
                             <?php if ($exam['status'] !== 'in_progress'): ?>
                                 <a href="exam_delete.php?id=<?= (int)$exam['id'] ?>"
                                 class="btn btn-sm btn-danger"
@@ -195,23 +210,25 @@ try {
                                 <button class="btn btn-sm btn-secondary" disabled title="Cannot delete an exam in progress">Delete</button>
                             <?php endif; ?>
 
+                            <!-- Edit: embed minimal data attributes needed for edit modal -->
                             <button class="btn btn-warning btn-sm edit-exam-btn"
                                     data-bs-toggle="modal"
                                     data-bs-target="#editExamModal"
                                     data-id="<?= (int)$exam['id'] ?>"
-                                    data-title="<?= htmlspecialchars($exam['title'], ENT_QUOTES) ?>"
-                                    data-description="<?= htmlspecialchars($exam['description'] ?? '', ENT_QUOTES) ?>"
-                                    data-duration="<?= (int)$exam['duration'] ?>"
-                                    data-total="<?= (int)$exam['total_marks'] ?>">
-                                Edit Exam
+                                    data-program_id="<?= (int)($exam['program_id'] ?? 0) ?>"
+                                    data-course_id="<?= (int)($exam['course_id'] ?? 0) ?>"
+                                    data-duration="<?= (int)($exam['duration'] ?? 0) ?>"
+                                    data-total="<?= (int)($exam['total_marks'] ?? 0) ?>"
+                                    data-status="<?= htmlspecialchars($exam['status'] ?? 'draft', ENT_QUOTES) ?>">
+                                Edit
                             </button>
                         </td>
-
                     </tr>
                 <?php endforeach; ?>
             <?php endif; ?>
         </tbody>
     </table>
+
 
 
     <a href="../auth/logout.php" class="btn btn-outline-danger mt-4">Logout</a>
@@ -248,17 +265,6 @@ try {
                     <option value="">Select a program first</option>
                 </select>
                 <div class="invalid-feedback">Please select a course for this exam.</div>
-            </div>
-
-            <div class="mb-3">
-                <label for="title" class="form-label">Exam Title</label>
-                <input id="title" type="text" name="title" class="form-control" required>
-                <div class="invalid-feedback">Please enter an exam title.</div>
-            </div>
-
-            <div class="mb-3">
-                <label for="description" class="form-label">Description</label>
-                <textarea id="description" name="description" class="form-control" rows="3"></textarea>
             </div>
 
             <div class="row">
@@ -300,8 +306,7 @@ try {
 <div class="modal fade" id="editExamModal" tabindex="-1">
   <div class="modal-dialog modal-lg modal-dialog-centered">
     <div class="modal-content">
-
-      <form method="POST" action="edit_exam.php" class="needs-validation" novalidate>
+      <form method="POST" action="edit_exam.php" id="editExamForm" class="needs-validation" novalidate>
         <input type="hidden" name="exam_id" id="edit_exam_id">
 
         <div class="modal-header">
@@ -310,27 +315,48 @@ try {
         </div>
 
         <div class="modal-body">
-
           <div class="mb-3">
-            <label class="form-label">Exam Title</label>
-            <input type="text" id="edit_title" name="title" class="form-control" required>
+            <label for="edit_program_id" class="form-label">Program</label>
+            <select id="edit_program_id" name="program_id" class="form-select" required>
+              <option value="">Select program</option>
+              <?php foreach ($programs as $p): ?>
+                <option value="<?= (int)$p['id'] ?>"><?= htmlspecialchars($p['name']) ?></option>
+              <?php endforeach; ?>
+            </select>
+            <div class="invalid-feedback">Please choose a program.</div>
           </div>
 
           <div class="mb-3">
-            <label class="form-label">Description</label>
-            <textarea id="edit_description" name="description" class="form-control"></textarea>
+            <label for="edit_course_id" class="form-label">Course</label>
+            <select id="edit_course_id" name="course_id" class="form-select" required disabled>
+              <option value="">Select a program first</option>
+            </select>
+            <div class="invalid-feedback">Please choose a course.</div>
+          </div>
+
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label for="edit_duration" class="form-label">Duration (minutes)</label>
+              <input id="edit_duration" type="number" name="duration" class="form-control" min="1" required>
+              <div class="invalid-feedback">Enter duration (min 1).</div>
+            </div>
+
+            <div class="col-md-6 mb-3">
+              <label for="edit_total" class="form-label">Total Marks</label>
+              <input id="edit_total" type="number" name="total_marks" class="form-control" min="0" required>
+              <div class="invalid-feedback">Enter total marks.</div>
+            </div>
           </div>
 
           <div class="mb-3">
-            <label class="form-label">Duration (minutes)</label>
-            <input type="number" id="edit_duration" name="duration" class="form-control" min="1" required>
+            <label for="edit_status" class="form-label">Status</label>
+            <select id="edit_status" name="status" class="form-select" required>
+              <option value="draft">Draft</option>
+              <option value="in_progress">In Progress</option>
+              <option value="closed">Closed</option>
+            </select>
+            <div class="invalid-feedback">Please select a status.</div>
           </div>
-
-          <div class="mb-3">
-            <label class="form-label">Total Marks</label>
-            <input type="number" id="edit_total" name="total_marks" class="form-control" min="0" required>
-          </div>
-
         </div>
 
         <div class="modal-footer">
@@ -339,10 +365,10 @@ try {
         </div>
 
       </form>
-
     </div>
   </div>
 </div>
+
 
 
 
@@ -459,6 +485,95 @@ document.querySelectorAll('.edit-exam-btn').forEach(btn => {
       form.classList.add('was-validated');
     }, false);
   }
+})();
+
+(function () {
+    const GET_COURSES_URL = '../admin/get_courses.php'; // adjust relative path if needed
+
+    // helper to populate #edit_course_id from courses array
+    function populateCourseSelect(selectEl, courses, selectedId) {
+        selectEl.innerHTML = '<option value="">Select course</option>';
+        courses.forEach(c => {
+            const opt = document.createElement('option');
+            opt.value = c.id;
+            opt.textContent = c.title;
+            if (String(c.id) === String(selectedId)) opt.selected = true;
+            selectEl.appendChild(opt);
+        });
+        selectEl.disabled = false;
+    }
+
+    async function fetchCourses(programId) {
+        if (!programId) return [];
+        try {
+            const resp = await fetch(`${GET_COURSES_URL}?program_id=${encodeURIComponent(programId)}`, { credentials: 'same-origin' });
+            const payload = await resp.json();
+            if (payload && payload.success) return payload.data || [];
+        } catch (e) {
+            console.error('fetchCourses error', e);
+        }
+        return [];
+    }
+
+    // When Edit button is clicked: populate the edit modal fields
+    document.querySelectorAll('.edit-exam-btn').forEach(btn => {
+        btn.addEventListener('click', async function () {
+            const id = this.dataset.id || '';
+            const programId = this.dataset.program_id || '';
+            const courseId = this.dataset.course_id || '';
+            const duration = this.dataset.duration || '';
+            const total = this.dataset.total || '';
+            const status = this.dataset.status || 'draft';
+
+            // set hidden id
+            document.getElementById('edit_exam_id').value = id;
+
+            // set simple fields
+            document.getElementById('edit_duration').value = duration;
+            document.getElementById('edit_total').value = total;
+            document.getElementById('edit_status').value = status;
+
+            // set program select
+            const editProgramSelect = document.getElementById('edit_program_id');
+            editProgramSelect.value = programId;
+
+            // load courses for this program and select the right one
+            const editCourseSelect = document.getElementById('edit_course_id');
+            editCourseSelect.disabled = true;
+            editCourseSelect.innerHTML = '<option>Loading courses…</option>';
+
+            const courses = await fetchCourses(programId);
+            if (courses.length === 0) {
+                editCourseSelect.innerHTML = '<option value="">No courses</option>';
+                editCourseSelect.disabled = true;
+            } else {
+                populateCourseSelect(editCourseSelect, courses, courseId);
+            }
+        });
+    });
+
+    // If admin changes program inside edit modal, reload courses
+    const editProgram = document.getElementById('edit_program_id');
+    if (editProgram) {
+        editProgram.addEventListener('change', async function () {
+            const pid = this.value;
+            const editCourseSelect = document.getElementById('edit_course_id');
+            if (!pid) {
+                editCourseSelect.innerHTML = '<option value="">Select a program first</option>';
+                editCourseSelect.disabled = true;
+                return;
+            }
+            editCourseSelect.disabled = true;
+            editCourseSelect.innerHTML = '<option>Loading courses…</option>';
+            const courses = await fetchCourses(pid);
+            if (courses.length === 0) {
+                editCourseSelect.innerHTML = '<option value="">No courses</option>';
+                editCourseSelect.disabled = true;
+            } else {
+                populateCourseSelect(editCourseSelect, courses, '');
+            }
+        });
+    }
 })();
 </script>
 
