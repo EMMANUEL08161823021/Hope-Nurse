@@ -9,6 +9,7 @@ $stmt = $pdo->query("
         u.id,
         u.full_name,
         u.email,
+        u.country,
         u.status,
         u.created_at,
         (
@@ -47,6 +48,7 @@ $students = $stmt->fetchAll(PDO::FETCH_ASSOC);
             <tr>
                 <th>Name</th>
                 <th>Email</th>
+                <th>Country</th>
                 <th>Status</th>
                 <th>Registered</th>
                 <th width="30%">Actions</th>
@@ -63,6 +65,7 @@ $students = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 <tr>
                     <td><?= htmlspecialchars($s['full_name']) ?></td>
                     <td><?= htmlspecialchars($s['email']) ?></td>
+                    <td><?= htmlspecialchars($s['country']) ?></td>
                     <td>
                         <span class="badge bg-<?= $s['status'] === 'active' ? 'success' : 'danger' ?>">
                             <?= htmlspecialchars(ucfirst($s['status'])) ?>

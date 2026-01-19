@@ -41,6 +41,14 @@ if (!empty($_SESSION['flash'])) {
     $toastMessage = (string)$_SESSION['flash'];
     // We'll unset after rendering so it doesn't reappear
 }
+
+try {
+    $programsStmt = $pdo->query("SELECT id, name FROM programs ORDER BY name ASC");
+    $programs = $programsStmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (Exception $e) {
+    $programs = [];
+}
+
 ?>
 
 
@@ -215,13 +223,33 @@ if (!empty($_SESSION['flash'])) {
 <div class="modal fade" id="createExamModal" tabindex="-1" aria-labelledby="createExamModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-lg modal-dialog-centered">
     <div class="modal-content">
-      <form id="createExamForm" action="store_exam.php" method="POST" class="needs-validation" novalidate>
+        <form id="createExamForm" action="store_exam.php" method="POST" class="needs-validation" novalidate>
         <div class="modal-header">
-          <h5 class="modal-title" id="createExamModalLabel">Create Exam</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            <h5 class="modal-title" id="createExamModalLabel">Create Exam</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
 
         <div class="modal-body">
+            <div class="mb-3">
+                <label for="program_id" class="form-label">Program</label>
+                <select id="program_id" name="program_id" class="form-select" required>
+                    <option value="">Select program</option>
+                    <?php foreach ($programs as $p): ?>
+                        <option value="<?= (int)$p['id'] ?>"><?= htmlspecialchars($p['name']) ?></option>
+                    <?php endforeach; ?>
+                </select>
+                <div class="invalid-feedback">Please select a program for this exam.</div>
+            </div>
+
+            <!-- COURSE: will be populated when a program is selected -->
+            <div class="mb-3">
+                <label for="course_id" class="form-label">Course</label>
+                <select id="course_id" name="course_id" class="form-select" required disabled>
+                    <option value="">Select a program first</option>
+                </select>
+                <div class="invalid-feedback">Please select a course for this exam.</div>
+            </div>
+
             <div class="mb-3">
                 <label for="title" class="form-label">Exam Title</label>
                 <input id="title" type="text" name="title" class="form-control" required>
@@ -260,10 +288,10 @@ if (!empty($_SESSION['flash'])) {
         </div>
 
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-          <button type="submit" class="btn btn-primary">Create Exam</button>
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-primary">Create Exam</button>
         </div>
-      </form>
+        </form>
     </div>
   </div>
 </div>
@@ -334,6 +362,105 @@ document.querySelectorAll('.edit-exam-btn').forEach(btn => {
 });
 </script>
 
+<script>
+    (function () {
+  const GET_COURSES_URL = '../admin/get_courses.php'; // adjust path if needed
+  const programSelect = document.getElementById('program_id');
+  const courseSelect = document.getElementById('course_id');
+  const form = document.getElementById('createExamForm');
+
+  function setCourseLoading(loading, message) {
+    courseSelect.disabled = loading;
+    courseSelect.innerHTML = loading ? `<option>Loading courses…</option>` : (message ? `<option value="">${message}</option>` : `<option value="">Select course</option>`);
+  }
+
+  async function loadCourses(programId) {
+    if (!programId) {
+      setCourseLoading(false, 'Select a program first');
+      courseSelect.required = false;
+      return;
+    }
+
+    setCourseLoading(true);
+
+    try {
+      const resp = await fetch(`${GET_COURSES_URL}?program_id=${encodeURIComponent(programId)}`, {
+        credentials: 'same-origin',
+        headers: { 'Accept': 'application/json' }
+      });
+
+      const payload = await resp.json();
+
+      if (!payload.success || !Array.isArray(payload.data) || payload.data.length === 0) {
+        setCourseLoading(false, 'No courses available');
+        courseSelect.required = false;
+        courseSelect.disabled = true;
+        return;
+      }
+
+      // populate options
+      courseSelect.innerHTML = '<option value="">Select course</option>';
+      payload.data.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c.id;
+        opt.textContent = c.title;
+        courseSelect.appendChild(opt);
+      });
+
+      courseSelect.disabled = false;
+      courseSelect.required = true;
+    } catch (err) {
+      console.error('Failed to load courses', err);
+      setCourseLoading(false, 'Unable to load');
+      courseSelect.required = false;
+      courseSelect.disabled = true;
+    }
+  }
+
+  if (programSelect) {
+    programSelect.addEventListener('change', function () {
+      loadCourses(this.value);
+    });
+
+    // If modal reopens and program already selected, preload courses
+    if (programSelect.value) {
+      loadCourses(programSelect.value);
+    }
+  }
+
+  // Integrate with Bootstrap validation; also ensure a course is chosen if required
+  if (form) {
+    form.addEventListener('submit', function (event) {
+      // Native validation
+      if (!form.checkValidity()) {
+        event.preventDefault();
+        event.stopPropagation();
+        form.classList.add('was-validated');
+        return;
+      }
+
+      // Additional check: if courseSelect is required but no value chosen, prevent submit
+      if (!courseSelect.disabled && courseSelect.required && !courseSelect.value) {
+        event.preventDefault();
+        event.stopPropagation();
+        courseSelect.classList.add('is-invalid');
+        // remove is-invalid once user changes selection
+        courseSelect.addEventListener('change', function handler() {
+          if (courseSelect.value) {
+            courseSelect.classList.remove('is-invalid');
+            courseSelect.removeEventListener('change', handler);
+          }
+        });
+        form.classList.add('was-validated');
+        return;
+      }
+
+      // allow submit
+      form.classList.add('was-validated');
+    }, false);
+  }
+})();
+</script>
 
 <script>
 (function () {
