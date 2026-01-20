@@ -21,13 +21,15 @@ $stmt = $pdo->prepare("
         a.status AS attempt_status,
         a.submitted_at,
         a.created_at,
-        e.title,
+        c.title AS title,
         e.total_marks
     FROM attempts a
     JOIN exams e ON a.exam_id = e.id
+    JOIN courses c ON e.course_id = c.id
     WHERE a.student_id = ?
     ORDER BY a.created_at DESC
 ");
+
 $stmt->execute([$student_id]);
 $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
