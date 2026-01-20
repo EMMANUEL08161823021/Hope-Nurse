@@ -26,13 +26,15 @@ $stmt = $pdo->prepare("
         a.created_at,
         a.started_at,
         a.submitted_at,
-        e.title,
+        c.title AS title,
         e.total_marks
     FROM attempts a
     JOIN exams e ON a.exam_id = e.id
+    JOIN courses c ON e.course_id = c.id
     WHERE a.id = ? AND a.student_id = ?
     LIMIT 1
 ");
+
 $stmt->execute([$attempt_id, $student_id]);
 $attempt = $stmt->fetch(PDO::FETCH_ASSOC);
 

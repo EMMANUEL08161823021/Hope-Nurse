@@ -7,7 +7,18 @@ require_once '../config/db.php';
 $attempt_id = intval($_GET['attempt_id'] ?? 0);
 if (!$attempt_id) die('Missing attempt');
 
-$stmt = $pdo->prepare("SELECT a.*, e.title, e.duration AS exam_duration FROM attempts a JOIN exams e ON a.exam_id=e.id WHERE a.id=? AND a.student_id=? LIMIT 1");
+
+$stmt = $pdo->prepare("
+    SELECT 
+        a.*,
+        c.title AS title,
+        e.duration AS exam_duration
+    FROM attempts a
+    JOIN exams e ON a.exam_id = e.id
+    JOIN courses c ON e.course_id = c.id
+    WHERE a.id = ? AND a.student_id = ?
+    LIMIT 1
+");
 $stmt->execute([$attempt_id, $_SESSION['user']['id']]);
 $attempt = $stmt->fetch();
 if (!$attempt) die('Attempt not found or not yours');
@@ -15,6 +26,8 @@ if (!$attempt) die('Attempt not found or not yours');
 if ($attempt['status'] !== 'in_progress') {
     die('This attempt is not in progress.');
 }
+
+
 
 // compute end time server-side
 $started = new DateTime($attempt['started_at']);
@@ -41,6 +54,7 @@ foreach ($ansStmt->fetchAll() as $r) $saved[$r['question_id']] = $r['answer_text
 
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h4><?= htmlspecialchars($attempt['title']) ?></h4>
+    
     <div>
       Time left: <span id="timer">--:--</span>
     </div>

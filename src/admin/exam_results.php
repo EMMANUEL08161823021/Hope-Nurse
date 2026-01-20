@@ -10,8 +10,26 @@ if ($exam_id <= 0) {
     die('Invalid exam id.');
 }
 
-/* Fetch exam */
-$examStmt = $pdo->prepare("SELECT id, title, total_marks, status, created_at FROM exams WHERE id = ? LIMIT 1");
+/* Fetch exam with course & program info (defensive joins) */
+$examStmt = $pdo->prepare("
+    SELECT
+        e.id,
+        e.total_marks,
+        e.status,
+        e.created_at,
+        e.duration,
+        e.total_marks,
+        c.title AS course_title,
+        c.description AS course_description,
+        p.name AS program_name,
+        u.full_name AS admin_name
+    FROM exams e
+    LEFT JOIN courses c ON e.course_id = c.id
+    LEFT JOIN programs p ON e.program_id = p.id
+    LEFT JOIN users u ON e.created_by = u.id
+    WHERE e.id = ?
+    LIMIT 1
+");
 $examStmt->execute([$exam_id]);
 $exam = $examStmt->fetch(PDO::FETCH_ASSOC);
 if (!$exam) {
@@ -24,15 +42,13 @@ $q = trim((string)($_GET['q'] ?? ''));
 $filterSql = '';
 $params = [$exam_id];
 if ($q !== '') {
-    $filterSql = " AND (u.full_name LIKE ? OR u.email LIKE ?)
- ";
+    $filterSql = " AND (u.full_name LIKE ? OR u.email LIKE ?)";
     $like = '%' . $q . '%';
     $params[] = $like;
-     $params[] = $like;
+    $params[] = $like;
 }
 
 /* Fetch attempts with student info — using your exact attempt columns */
-
 $attemptsStmt = $pdo->prepare("
     SELECT
         a.id AS attempt_id,
@@ -50,7 +66,6 @@ $attemptsStmt = $pdo->prepare("
     WHERE a.exam_id = ? {$filterSql}
     ORDER BY a.created_at DESC
 ");
-
 $attemptsStmt->execute($params);
 $attempts = $attemptsStmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -63,7 +78,7 @@ function fmtDate($d) {
 }
 ?>
 <?php require __DIR__ . '/../constants/header.php'; ?>
-<title>Exam Results — <?= htmlspecialchars($exam['title']) ?></title>
+<title>Exam Results — <?= htmlspecialchars($exam['course_title'] ?? 'Exam') ?></title>
 </head>
 <body class="container py-4">
 
@@ -71,12 +86,24 @@ function fmtDate($d) {
 
 <div class="card mb-4">
     <div class="card-body">
-        <h4 class="card-title mb-1"><?= htmlspecialchars($exam['title']) ?></h4>
+        <h4 class="card-title mb-1"><?= htmlspecialchars($exam['course_title'] ?? 'Untitled Course') ?></h4>
         <div class="text-muted mb-2">
-            Total marks: <?= htmlspecialchars($exam['total_marks'] ?? 'N/A') ?> &nbsp; • &nbsp;
-            Status: <span class="badge bg-<?= $exam['status'] === 'in_progress' ? 'success' : ($exam['status']==='closed' ? 'danger' : 'secondary') ?>">
-                <?= htmlspecialchars(ucfirst($exam['status'])) ?>
-            </span>
+            <small><?= htmlspecialchars($exam['program_name'] ?? '') ?></small>
+            <?php if (!empty($exam['course_description'])): ?>
+                <div class="small mt-1"><?= nl2br(htmlspecialchars($exam['course_description'])) ?></div>
+            <?php endif; ?>
+
+            <div class="mt-2">
+                Total marks: <?= htmlspecialchars($exam['total_marks'] ?? 'N/A') ?> &nbsp; • &nbsp;
+                Status:
+                <span class="badge bg-<?= ($exam['status'] === 'in_progress') ? 'success' : (($exam['status'] === 'closed') ? 'danger' : 'secondary') ?>">
+                    <?= htmlspecialchars(ucfirst($exam['status'] ?? '')) ?>
+                </span>
+                &nbsp; • &nbsp;
+                Created by: <?= htmlspecialchars($exam['admin_name'] ?? '—') ?>
+                &nbsp; • &nbsp;
+                Created at: <?= htmlspecialchars($exam['created_at'] ?? '—') ?>
+            </div>
         </div>
 
         <form method="get" class="row g-2 align-items-center mb-3" style="max-width:560px;">

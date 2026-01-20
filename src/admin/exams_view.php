@@ -127,17 +127,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_question'])) {
 
 // ==== END POST HANDLER ====
 
-// Fetch exam + admin name (fresh)
+
+
+// Fetch exam + admin name + course info (defensive joins)
 $stmt = $pdo->prepare("
-    SELECT exams.*, users.full_name AS admin_name
-    FROM exams
-    JOIN users ON exams.created_by = users.id
-    WHERE exams.id = ?
+    SELECT
+        e.*,
+        u.full_name AS admin_name,
+        c.title AS course_title,
+        c.description AS course_description,
+        p.name AS program_name
+    FROM exams e
+    LEFT JOIN users u ON e.created_by = u.id
+    LEFT JOIN courses c ON e.course_id = c.id
+    LEFT JOIN programs p ON e.program_id = p.id
+    WHERE e.id = ?
     LIMIT 1
 ");
 $stmt->execute([$exam_id]);
 $exam = $stmt->fetch(PDO::FETCH_ASSOC);
-if (!$exam) die("Exam not found");
+
+if (!$exam) {
+    die("Exam not found");
+}
+
 
 // Questions
 $qStmt = $pdo->prepare("SELECT * FROM questions WHERE exam_id = ? ORDER BY id ASC");
@@ -237,9 +250,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_exam'])) {
     <div class="card shadow-sm">
         <div class="card-body">
 
-            <h3><?= htmlspecialchars($exam['title']) ?></h3>
-            <p class="text-muted"><?= htmlspecialchars($exam['description'] ?? 'No description') ?></p>
-
+            <h3><?= htmlspecialchars($exam['course_title'] ?? 'Untitled course') ?></h3>
+            <p class="text-muted"><?= htmlspecialchars($exam['course_description'] ?? 'No description') ?></p>
             <hr>
 
             <div class="row mb-3">
