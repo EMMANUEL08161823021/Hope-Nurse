@@ -52,336 +52,371 @@ try {
 } catch (Exception $e) {
     $programs = [];
 }
-
 ?>
-
-
 
 <?php require '../constants/header.php'?>
 <title>Admin Dashboard</title>
 </head>
 
+<style>
+    .nav-pills .nav-link.active,
+    .nav-pills .show > .nav-link {
+    background-color: #eab32e;
+    color: #fff;               /* black text for better contrast on gold */
+    border-color: #e0a827;     /* subtle border tone */
+    }
+
+    .nav-pills .nav-link.active:hover,
+    .nav-pills .nav-link.active:focus,
+    .nav-pills .show > .nav-link:hover,
+    .nav-pills .show > .nav-link:focus {
+    background-color: #d79c1f;
+    color: #000;
+    }
+
+</style>
+
 <body>
 
-    <div class="container mt-4">
-        <h2>Admin Dashboard</h2>
-        <p class="text-muted">Exam Management Overview</p>
+<div class="container-fluid">
+  <div class="row">
 
-        <!-- METRICS -->
-        <div class="row mb-4">
-            <div class="col-md-3">
-                <div class="card text-center shadow-sm">
-                    <div class="card-body">
-                        <h6>Total Exams</h6>
-                        <h3><?= (int)$totalExams ?></h3>
-                    </div>
-                </div>
-            </div>
+    <!-- SIDEBAR -->
+    <nav id="adminSidebar" class="col-12 col-md-3 col-lg-2 px-0 border-end vh-100 collapse d-md-block" style="background-color: #042c2c;">
+      <div class="d-flex flex-column p-3 h-100">
+        <a href="#" class="d-flex align-items-center mb-3 mb-md-4 text-decoration-none">
+          <img src="https://www.hopenurse.com/photos/Original%20logo%20NBG.png" alt="Hope" style="height:45px; margin-right:8px;">
+        </a>
 
-            <div class="col-md-3">
-                <div class="card text-center shadow-sm">
-                    <div class="card-body">
-                        <h6>Active Exams</h6>
-                        <h3><?= (int)$activeExams ?></h3>
-                    </div>
-                </div>
-            </div>
+        <ul class="nav nav-pills flex-column mb-auto">
+          <li class="nav-item">
+            <a href="dashboard.php" class="nav-link active">
+              Dashboard
+            </a>
+          </li>
+        </ul>
 
-            <div class="col-md-3">
-                <div class="card text-center shadow-sm">
-                    <div class="card-body">
-                        <h6>Total Students</h6>
-                        <h3><?= (int)$totalStudents ?></h3>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card text-center shadow-sm">
-                    <div class="card-body">
-                        <h6>Exam Attempts</h6>
-                        <h3><?= (int)$totalAttempts ?></h3>
-                    </div>
-                </div>
-            </div>
+        <hr> 
+
+        <div class="mt-auto">
+          <div class="small text-muted mb-2">Feature plans</div>
+          <ul class="list-unstyled">
+            <li><a href="#" class="text-decoration-none text-white d-block py-1">Settings</a></li>
+            <li><a href="#" class="text-decoration-none text-white d-block py-1">Notifications</a></li>
+            <li><a href="#" class="text-decoration-none text-white d-block py-1">User Feedback</a></li>
+          </ul>
+
+          <div class="mt-3">
+            <a href="../auth/logout.php" class="btn btn-outline-danger btn-sm w-100">Logout</a>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <!-- MAIN -->
+    <main class="col-12 col-md-9 col-lg-10 p-4">
+      <div class="d-flex align-items-center justify-content-between mb-3">
+        <div>
+          <h2 class="mb-0">Admin Dashboard</h2>
+          <p class="text-muted small mb-0">Exam Management Overview</p>
         </div>
 
-        <!-- OPTIONAL ATTEMPTS -->
-        <div class="row mb-4">
+        <div class="d-flex gap-2">
+          <a href="students.php" class="btn btn-secondary">Manage Students</a>
+          <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#createExamModal">
+              + Create Exam
+          </button>
+        </div>
+      </div>
+
+      <!-- METRICS -->
+      <div class="row mb-4">
+          <div class="col-sm-6 col-md-3 mb-3">
+              <div class="card text-center shadow-sm">
+                  <div class="card-body">
+                      <h6>Total Exams</h6>
+                      <h3><?= (int)$totalExams ?></h3>
+                  </div>
+              </div>
+          </div>
+
+          <div class="col-sm-6 col-md-3 mb-3">
+              <div class="card text-center shadow-sm">
+                  <div class="card-body">
+                      <h6>Active Exams</h6>
+                      <h3><?= (int)$activeExams ?></h3>
+                  </div>
+              </div>
+          </div>
+
+          <div class="col-sm-6 col-md-3 mb-3">
+              <div class="card text-center shadow-sm">
+                  <div class="card-body">
+                      <h6>Total Students</h6>
+                      <h3><?= (int)$totalStudents ?></h3>
+                  </div>
+              </div>
+          </div>
+
+          <div class="col-sm-6 col-md-3 mb-3">
+              <div class="card text-center shadow-sm">
+                  <div class="card-body">
+                      <h6>Exam Attempts</h6>
+                      <h3><?= (int)$totalAttempts ?></h3>
+                  </div>
+              </div>
+          </div>
+      </div>
+
+      <!-- Toast -->
+      <div class="position-relative">
+          <div id="toastContainer" class="toast-container position-static mt-0 mb-3">
+              <?php if ($toastMessage): ?>
+                  <div id="examToast" class="toast align-items-center text-bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
+                      <div class="d-flex">
+                          <div class="toast-body">
+                              <?= htmlspecialchars($toastMessage) ?>
+                          </div>
+                          <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                      </div>
+                  </div>
+                  <?php unset($_SESSION['flash']); ?>
+              <?php endif; ?>
+          </div>
+      </div>
+
+      <!-- RECENT EXAMS TABLE -->
+      <div id="examsSection" class="card mb-4">
+        <div class="card-body">
+          <h4 class="mb-3">Recent Exams</h4>
+
+          <div class="table-responsive">
+          <table class="table table-bordered mt-2" id="recentExamsTable">
+              <thead>
+                  <tr>
+                      <th>Program / Course</th>
+                      <th>Duration</th>
+                      <th>Total Marks</th>
+                      <th>Status</th>
+                      <th>Created</th>
+                      <th>Action</th>
+                  </tr>
+              </thead>
+              <tbody>
+                  <?php if (count($recentExams) === 0): ?>
+                      <tr>
+                          <td colspan="6" class="text-center">No exams found</td>
+                      </tr>
+                  <?php else: ?>
+                      <?php foreach ($recentExams as $exam): ?>
+                          <tr>
+                              <td>
+                                  <div class="fw-semibold"><?= htmlspecialchars($exam['program_name'] ?? '—') ?></div>
+                                  <div class="small text-muted"><?= htmlspecialchars($exam['course_title'] ?? '—') ?></div>
+                              </td>
+
+                              <td><?= (int)($exam['duration'] ?? 0) ?> min</td>
+
+                              <td><?= (int)($exam['total_marks'] ?? 0) ?></td>
+
+                              <td>
+                                  <span class="badge bg-<?= 
+                                      ($exam['status'] === 'in_progress') ? 'success' :
+                                      (($exam['status'] === 'closed') ? 'danger' : 'secondary')
+                                  ?>">
+                                      <?= htmlspecialchars(ucfirst($exam['status'] ?? '')) ?>
+                                  </span>
+                              </td>
+
+                              <td><?= htmlspecialchars($exam['created_at'] ?? '') ?></td>
+
+                              <td class="text-nowrap">
+                                  <!-- View exam details -->
+                                  <a href="exams_view.php?id=<?= (int)$exam['id'] ?>" class="btn btn-sm btn-outline-primary">
+                                      View
+                                  </a>
+
+                                  <!-- Results -->
+                                  <a href="exam_results.php?exam_id=<?= (int)$exam['id'] ?>" class="btn btn-sm btn-info">Results</a>
+
+                                  <!-- Delete (keeps your existing protection) -->
+                                  <?php if ($exam['status'] !== 'in_progress'): ?>
+                                      <a href="exam_delete.php?id=<?= (int)$exam['id'] ?>"
+                                      class="btn btn-sm btn-danger"
+                                      onclick="return confirm('Delete this exam permanently?')">
+                                          Delete
+                                      </a>
+                                  <?php else: ?>
+                                      <button class="btn btn-sm btn-secondary" disabled title="Cannot delete an exam in progress">Delete</button>
+                                  <?php endif; ?>
+
+                                  <!-- Edit: embed minimal data attributes needed for edit modal -->
+                                  <button class="btn btn-warning btn-sm edit-exam-btn"
+                                          data-bs-toggle="modal"
+                                          data-bs-target="#editExamModal"
+                                          data-id="<?= (int)$exam['id'] ?>"
+                                          data-program_id="<?= (int)($exam['program_id'] ?? 0) ?>"
+                                          data-course_id="<?= (int)($exam['course_id'] ?? 0) ?>"
+                                          data-duration="<?= (int)($exam['duration'] ?? 0) ?>"
+                                          data-total="<?= (int)($exam['total_marks'] ?? 0) ?>"
+                                          data-status="<?= htmlspecialchars($exam['status'] ?? 'draft', ENT_QUOTES) ?>">
+                                      Edit
+                                  </button>
+                              </td>
+                          </tr>
+                      <?php endforeach; ?>
+                  <?php endif; ?>
+              </tbody>
+          </table>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- Create Exam Modal (unchanged markup) -->
+<div class="modal fade" id="createExamModal" tabindex="-1" aria-labelledby="createExamModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+        <form id="createExamForm" action="store_exam.php" method="POST" class="needs-validation" novalidate>
+        <div class="modal-header">
+            <h5 class="modal-title" id="createExamModalLabel">Create Exam</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
 
-        <div class="d-flex justify-content-between">
-            <h4>Recent Exams</h4>
-
-            <!-- QUICK ACTIONS -->
-            <div class="d-flex gap-2 align-items-center">
-                <a href="students.php" class="btn btn-secondary">Manage Students</a>
-                <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#createExamModal">
-                    + Create Exam
-                </button>
-            </div>
-        </div>
-
-
-        <!-- RECENT EXAMS -->
-
-        <!-- Toast area (appears below the recent exams table) -->
-        <div class="position-relative">
-            <div id="toastContainer" class="toast-container position-static mt-3">
-                <?php if ($toastMessage): ?>
-                    <div id="examToast" class="toast align-items-center text-bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
-                        <div class="d-flex">
-                            <div class="toast-body">
-                                <?= htmlspecialchars($toastMessage) ?>
-                            </div>
-                            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
-                        </div>
-                    </div>
-                    <?php
-                    // clear the flash so it doesn't appear again
-                    unset($_SESSION['flash']);
-                    ?>
-                <?php endif; ?>
-            </div>
-        </div>
-        <table class="table table-bordered mt-2" id="recentExamsTable">
-            <thead>
-                <tr>
-                    <th>Program / Course</th>
-                    <th>Duration</th>
-                    <th>Total Marks</th>
-                    <th>Status</th>
-                    <th>Created</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php if (count($recentExams) === 0): ?>
-                    <tr>
-                        <td colspan="6" class="text-center">No exams found</td>
-                    </tr>
-                <?php else: ?>
-                    <?php foreach ($recentExams as $exam): ?>
-                        <tr>
-                            <td>
-                                <div class="fw-semibold"><?= htmlspecialchars($exam['program_name'] ?? '—') ?></div>
-                                <div class="small text-muted"><?= htmlspecialchars($exam['course_title'] ?? '—') ?></div>
-                            </td>
-
-                            <td><?= (int)($exam['duration'] ?? 0) ?> min</td>
-
-                            <td><?= (int)($exam['total_marks'] ?? 0) ?></td>
-
-                            <td>
-                                <span class="badge bg-<?= 
-                                    ($exam['status'] === 'in_progress') ? 'success' :
-                                    (($exam['status'] === 'closed') ? 'danger' : 'secondary')
-                                ?>">
-                                    <?= htmlspecialchars(ucfirst($exam['status'] ?? '')) ?>
-                                </span>
-                            </td>
-
-                            <td><?= htmlspecialchars($exam['created_at'] ?? '') ?></td>
-
-                            <td class="text-nowrap">
-                                <!-- View exam details -->
-                                <a href="exams_view.php?id=<?= (int)$exam['id'] ?>" class="btn btn-sm btn-outline-primary">
-                                    View
-                                </a>
-
-                                <!-- Results -->
-                                <a href="exam_results.php?exam_id=<?= (int)$exam['id'] ?>" class="btn btn-sm btn-info">Results</a>
-
-                                <!-- Delete (keeps your existing protection) -->
-                                <?php if ($exam['status'] !== 'in_progress'): ?>
-                                    <a href="exam_delete.php?id=<?= (int)$exam['id'] ?>"
-                                    class="btn btn-sm btn-danger"
-                                    onclick="return confirm('Delete this exam permanently?')">
-                                        Delete
-                                    </a>
-                                <?php else: ?>
-                                    <button class="btn btn-sm btn-secondary" disabled title="Cannot delete an exam in progress">Delete</button>
-                                <?php endif; ?>
-
-                                <!-- Edit: embed minimal data attributes needed for edit modal -->
-                                <button class="btn btn-warning btn-sm edit-exam-btn"
-                                        data-bs-toggle="modal"
-                                        data-bs-target="#editExamModal"
-                                        data-id="<?= (int)$exam['id'] ?>"
-                                        data-program_id="<?= (int)($exam['program_id'] ?? 0) ?>"
-                                        data-course_id="<?= (int)($exam['course_id'] ?? 0) ?>"
-                                        data-duration="<?= (int)($exam['duration'] ?? 0) ?>"
-                                        data-total="<?= (int)($exam['total_marks'] ?? 0) ?>"
-                                        data-status="<?= htmlspecialchars($exam['status'] ?? 'draft', ENT_QUOTES) ?>">
-                                    Edit
-                                </button>
-                            </td>
-                        </tr>
+        <div class="modal-body">
+            <div class="mb-3">
+                <label for="program_id" class="form-label">Program</label>
+                <select id="program_id" name="program_id" class="form-select" required>
+                    <option value="">Select program</option>
+                    <?php foreach ($programs as $p): ?>
+                        <option value="<?= (int)$p['id'] ?>"><?= htmlspecialchars($p['name']) ?></option>
                     <?php endforeach; ?>
-                <?php endif; ?>
-            </tbody>
-        </table>
-
-
-
-        <a href="../auth/logout.php" class="btn btn-outline-danger mt-4">Logout</a>
-    </div>
-
-
-
-    <!-- Create Exam Modal -->
-    <div class="modal fade" id="createExamModal" tabindex="-1" aria-labelledby="createExamModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
-        <div class="modal-content">
-            <form id="createExamForm" action="store_exam.php" method="POST" class="needs-validation" novalidate>
-            <div class="modal-header">
-                <h5 class="modal-title" id="createExamModalLabel">Create Exam</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-
-            <div class="modal-body">
-                <div class="mb-3">
-                    <label for="program_id" class="form-label">Program</label>
-                    <select id="program_id" name="program_id" class="form-select" required>
-                        <option value="">Select program</option>
-                        <?php foreach ($programs as $p): ?>
-                            <option value="<?= (int)$p['id'] ?>"><?= htmlspecialchars($p['name']) ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                    <div class="invalid-feedback">Please select a program for this exam.</div>
-                </div>
-
-                <!-- COURSE: will be populated when a program is selected -->
-                <div class="mb-3">
-                    <label for="course_id" class="form-label">Course</label>
-                    <select id="course_id" name="course_id" class="form-select" required disabled>
-                        <option value="">Select a program first</option>
-                    </select>
-                    <div class="invalid-feedback">Please select a course for this exam.</div>
-                </div>
-
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label for="duration" class="form-label">Duration (minutes)</label>
-                        <input id="duration" type="number" name="duration" class="form-control" min="1" required>
-                        <div class="invalid-feedback">Enter duration in minutes (min 1).</div>
-                    </div>
-
-                    <div class="col-md-6 mb-3">
-                        <label for="total_marks" class="form-label">Total Marks</label>
-                        <input id="total_marks" type="number" name="total_marks" class="form-control" min="0" required>
-                        <div class="invalid-feedback">Enter total marks for this exam.</div>
-                    </div>
-                </div>
-
-                <div class="mb-3">
-                    <label for="status" class="form-label">Status</label>
-                    <select id="status" name="status" class="form-select" required>
-                        <option value="draft" selected>Draft</option>
-                        <option value="in_progress">In Progress</option>
-                        <option value="closed">Closed</option>
-                    </select>
-                    <div class="invalid-feedback">Please select a status.</div>
-                </div>
-
-            </div>
-
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="submit" class="btn btn-primary">Create Exam</button>
-            </div>
-            </form>
-        </div>
-    </div>
-    </div>
-
-    <!-- Edit Exam Modal -->
-    <div class="modal fade" id="editExamModal" tabindex="-1">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
-        <div class="modal-content">
-        <form method="POST" action="edit_exam.php" id="editExamForm" class="needs-validation" novalidate>
-            <input type="hidden" name="exam_id" id="edit_exam_id">
-
-            <div class="modal-header">
-            <h5 class="modal-title">Edit Exam</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-
-            <div class="modal-body">
-            <div class="mb-3">
-                <label for="edit_program_id" class="form-label">Program</label>
-                <select id="edit_program_id" name="program_id" class="form-select" required>
-                <option value="">Select program</option>
-                <?php foreach ($programs as $p): ?>
-                    <option value="<?= (int)$p['id'] ?>"><?= htmlspecialchars($p['name']) ?></option>
-                <?php endforeach; ?>
                 </select>
-                <div class="invalid-feedback">Please choose a program.</div>
+                <div class="invalid-feedback">Please select a program for this exam.</div>
             </div>
 
+            <!-- COURSE: will be populated when a program is selected -->
             <div class="mb-3">
-                <label for="edit_course_id" class="form-label">Course</label>
-                <select id="edit_course_id" name="course_id" class="form-select" required disabled>
-                <option value="">Select a program first</option>
+                <label for="course_id" class="form-label">Course</label>
+                <select id="course_id" name="course_id" class="form-select" required disabled>
+                    <option value="">Select a program first</option>
                 </select>
-                <div class="invalid-feedback">Please choose a course.</div>
+                <div class="invalid-feedback">Please select a course for this exam.</div>
             </div>
 
             <div class="row">
                 <div class="col-md-6 mb-3">
-                <label for="edit_duration" class="form-label">Duration (minutes)</label>
-                <input id="edit_duration" type="number" name="duration" class="form-control" min="1" required>
-                <div class="invalid-feedback">Enter duration (min 1).</div>
+                    <label for="duration" class="form-label">Duration (minutes)</label>
+                    <input id="duration" type="number" name="duration" class="form-control" min="1" required>
+                    <div class="invalid-feedback">Enter duration in minutes (min 1).</div>
                 </div>
 
                 <div class="col-md-6 mb-3">
-                <label for="edit_total" class="form-label">Total Marks</label>
-                <input id="edit_total" type="number" name="total_marks" class="form-control" min="0" required>
-                <div class="invalid-feedback">Enter total marks.</div>
+                    <label for="total_marks" class="form-label">Total Marks</label>
+                    <input id="total_marks" type="number" name="total_marks" class="form-control" min="0" required>
+                    <div class="invalid-feedback">Enter total marks for this exam.</div>
                 </div>
             </div>
 
             <div class="mb-3">
-                <label for="edit_status" class="form-label">Status</label>
-                <select id="edit_status" name="status" class="form-select" required>
-                <option value="draft">Draft</option>
-                <option value="in_progress">In Progress</option>
-                <option value="closed">Closed</option>
+                <label for="status" class="form-label">Status</label>
+                <select id="status" name="status" class="form-select" required>
+                    <option value="draft" selected>Draft</option>
+                    <option value="in_progress">In Progress</option>
+                    <option value="closed">Closed</option>
                 </select>
                 <div class="invalid-feedback">Please select a status.</div>
             </div>
-            </div>
 
-            <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-            <button class="btn btn-warning" type="submit">Save Changes</button>
-            </div>
-
-        </form>
         </div>
+
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-primary">Create Exam</button>
+        </div>
+        </form>
     </div>
+  </div>
+</div>
+
+<!-- Edit Exam Modal (unchanged markup) -->
+<div class="modal fade" id="editExamModal" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+    <form method="POST" action="edit_exam.php" id="editExamForm" class="needs-validation" novalidate>
+        <input type="hidden" name="exam_id" id="edit_exam_id">
+
+        <div class="modal-header">
+        <h5 class="modal-title">Edit Exam</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+
+        <div class="modal-body">
+        <div class="mb-3">
+            <label for="edit_program_id" class="form-label">Program</label>
+            <select id="edit_program_id" name="program_id" class="form-select" required>
+            <option value="">Select program</option>
+            <?php foreach ($programs as $p): ?>
+                <option value="<?= (int)$p['id'] ?>"><?= htmlspecialchars($p['name']) ?></option>
+            <?php endforeach; ?>
+            </select>
+            <div class="invalid-feedback">Please choose a program.</div>
+        </div>
+
+        <div class="mb-3">
+            <label for="edit_course_id" class="form-label">Course</label>
+            <select id="edit_course_id" name="course_id" class="form-select" required disabled>
+            <option value="">Select a program first</option>
+            </select>
+            <div class="invalid-feedback">Please choose a course.</div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6 mb-3">
+            <label for="edit_duration" class="form-label">Duration (minutes)</label>
+            <input id="edit_duration" type="number" name="duration" class="form-control" min="1" required>
+            <div class="invalid-feedback">Enter duration (min 1).</div>
+            </div>
+
+            <div class="col-md-6 mb-3">
+            <label for="edit_total" class="form-label">Total Marks</label>
+            <input id="edit_total" type="number" name="total_marks" class="form-control" min="0" required>
+            <div class="invalid-feedback">Enter total marks.</div>
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <label for="edit_status" class="form-label">Status</label>
+            <select id="edit_status" name="status" class="form-select" required>
+            <option value="draft">Draft</option>
+            <option value="in_progress">In Progress</option>
+            <option value="closed">Closed</option>
+            </select>
+            <div class="invalid-feedback">Please select a status.</div>
+        </div>
+        </div>
+
+        <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn btn-warning" type="submit">Save Changes</button>
+        </div>
+
+    </form>
     </div>
-
-
-
+  </div>
+</div>
 
 <!-- Bootstrap JS: adjust path if your assets live elsewhere -->
 <script src="../../public/assets/dist/js/bootstrap.bundle.min.js"></script>
 
+<!-- Removed the old small edit script (it referenced non-existent inputs) -->
+<!-- Keep the robust edit modal population script and course-loading JS (unchanged) -->
 
 <script>
-document.querySelectorAll('.edit-exam-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-        document.getElementById('edit_exam_id').value = btn.dataset.id;
-        document.getElementById('edit_title').value = btn.dataset.title;
-        document.getElementById('edit_description').value = btn.dataset.description;
-        document.getElementById('edit_duration').value = btn.dataset.duration;
-        document.getElementById('edit_total').value = btn.dataset.total;
-    });
-});
-</script>
-
-<script>
-    (function () {
+(function () {
   const GET_COURSES_URL = '../admin/get_courses.php'; // adjust path if needed
   const programSelect = document.getElementById('program_id');
   const courseSelect = document.getElementById('course_id');
@@ -585,12 +620,12 @@ document.querySelectorAll('.edit-exam-btn').forEach(btn => {
     }, false);
   }
 
-  // Focus title input when modal is shown
+  // Focus first input when modal is shown
   const createModal = document.getElementById('createExamModal');
   if (createModal) {
     createModal.addEventListener('shown.bs.modal', function () {
-      const titleInput = document.getElementById('title');
-      if (titleInput) titleInput.focus();
+      const programInput = document.getElementById('program_id');
+      if (programInput) programInput.focus();
     });
   }
 
