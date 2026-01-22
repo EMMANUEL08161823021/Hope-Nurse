@@ -58,60 +58,13 @@ try {
 <title>Admin Dashboard</title>
 </head>
 
-<style>
-    .nav-pills .nav-link.active,
-    .nav-pills .show > .nav-link {
-    background-color: #eab32e;
-    color: #fff;               /* black text for better contrast on gold */
-    border-color: #e0a827;     /* subtle border tone */
-    }
-
-    .nav-pills .nav-link.active:hover,
-    .nav-pills .nav-link.active:focus,
-    .nav-pills .show > .nav-link:hover,
-    .nav-pills .show > .nav-link:focus {
-    background-color: #d79c1f;
-    color: #000;
-    }
-
-</style>
-
 <body>
 
 <div class="container-fluid">
   <div class="row">
 
     <!-- SIDEBAR -->
-    <nav id="adminSidebar" class="col-12 col-md-3 col-lg-2 px-0 border-end vh-100 collapse d-md-block" style="background-color: #042c2c;">
-      <div class="d-flex flex-column p-3 h-100">
-        <a href="#" class="d-flex align-items-center mb-3 mb-md-4 text-decoration-none">
-          <img src="https://www.hopenurse.com/photos/Original%20logo%20NBG.png" alt="Hope" style="height:45px; margin-right:8px;">
-        </a>
-
-        <ul class="nav nav-pills flex-column mb-auto">
-          <li class="nav-item">
-            <a href="dashboard.php" class="nav-link active">
-              Dashboard
-            </a>
-          </li>
-        </ul>
-
-        <hr> 
-
-        <div class="mt-auto">
-          <div class="small text-muted mb-2">Feature plans</div>
-          <ul class="list-unstyled">
-            <li><a href="#" class="text-decoration-none text-white d-block py-1">Settings</a></li>
-            <li><a href="#" class="text-decoration-none text-white d-block py-1">Notifications</a></li>
-            <li><a href="#" class="text-decoration-none text-white d-block py-1">User Feedback</a></li>
-          </ul>
-
-          <div class="mt-3">
-            <a href="../auth/logout.php" class="btn btn-outline-danger btn-sm w-100">Logout</a>
-          </div>
-        </div>
-      </div>
-    </nav>
+    <?php require 'sidebar.php'?>
 
     <!-- MAIN -->
     <main class="col-12 col-md-9 col-lg-10 p-4">
@@ -122,7 +75,6 @@ try {
         </div>
 
         <div class="d-flex gap-2">
-          <a href="students.php" class="btn btn-secondary">Manage Students</a>
           <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#createExamModal">
               + Create Exam
           </button>
@@ -230,39 +182,63 @@ try {
 
                               <td><?= htmlspecialchars($exam['created_at'] ?? '') ?></td>
 
-                              <td class="text-nowrap">
-                                  <!-- View exam details -->
-                                  <a href="exams_view.php?id=<?= (int)$exam['id'] ?>" class="btn btn-sm btn-outline-primary">
-                                      View
-                                  </a>
+                          <td class="text-nowrap">
+                            <!-- View exam details -->
+                            <a href="exams_view.php?id=<?= (int)$exam['id'] ?>"
+                                class="btn btn-sm btn-outline-primary"
+                                role="button"
+                                data-bs-toggle="tooltip"
+                                title="View details"
+                                aria-label="View exam details">
+                                <i class="bi bi-eye" aria-hidden="true"></i>
+                            </a>
 
-                                  <!-- Results -->
-                                  <a href="exam_results.php?exam_id=<?= (int)$exam['id'] ?>" class="btn btn-sm btn-info">Results</a>
+                            <!-- Results -->
+                            <a href="exam_results.php?exam_id=<?= (int)$exam['id'] ?>"
+                                class="btn btn-sm btn-info"
+                                role="button"
+                                data-bs-toggle="tooltip"
+                                title="View results"
+                                aria-label="View exam results">
+                                <i class="bi bi-clipboard-check" aria-hidden="true"></i>
+                            </a>
 
-                                  <!-- Delete (keeps your existing protection) -->
-                                  <?php if ($exam['status'] !== 'in_progress'): ?>
-                                      <a href="exam_delete.php?id=<?= (int)$exam['id'] ?>"
-                                      class="btn btn-sm btn-danger"
-                                      onclick="return confirm('Delete this exam permanently?')">
-                                          Delete
-                                      </a>
-                                  <?php else: ?>
-                                      <button class="btn btn-sm btn-secondary" disabled title="Cannot delete an exam in progress">Delete</button>
-                                  <?php endif; ?>
+                            <!-- Delete (keeps your existing protection) -->
+                            <?php if ($exam['status'] !== 'in_progress'): ?>
+                                <a href="exam_delete.php?id=<?= (int)$exam['id'] ?>"
+                                class="btn btn-sm btn-danger"
+                                onclick="return confirm('Delete this exam permanently?')"
+                                data-bs-toggle="tooltip"
+                                title="Delete"
+                                aria-label="Delete exam">
+                                <i class="bi bi-trash" aria-hidden="true"></i>
+                                </a>
+                            <?php else: ?>
+                                <button class="btn btn-sm btn-secondary" disabled
+                                        title="Cannot delete an exam in progress"
+                                        aria-label="Cannot delete an exam in progress"
+                                        aria-disabled="true">
+                                <i class="bi bi-trash" aria-hidden="true"></i>
+                                </button>
+                            <?php endif; ?>
 
-                                  <!-- Edit: embed minimal data attributes needed for edit modal -->
-                                  <button class="btn btn-warning btn-sm edit-exam-btn"
-                                          data-bs-toggle="modal"
-                                          data-bs-target="#editExamModal"
-                                          data-id="<?= (int)$exam['id'] ?>"
-                                          data-program_id="<?= (int)($exam['program_id'] ?? 0) ?>"
-                                          data-course_id="<?= (int)($exam['course_id'] ?? 0) ?>"
-                                          data-duration="<?= (int)($exam['duration'] ?? 0) ?>"
-                                          data-total="<?= (int)($exam['total_marks'] ?? 0) ?>"
-                                          data-status="<?= htmlspecialchars($exam['status'] ?? 'draft', ENT_QUOTES) ?>">
-                                      Edit
-                                  </button>
-                              </td>
+                            <!-- Edit: embed minimal data attributes needed for edit modal -->
+                            <button class="btn btn-warning btn-sm edit-exam-btn"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#editExamModal"
+                                    data-id="<?= (int)$exam['id'] ?>"
+                                    data-program_id="<?= (int)($exam['program_id'] ?? 0) ?>"
+                                    data-course_id="<?= (int)($exam['course_id'] ?? 0) ?>"
+                                    data-duration="<?= (int)($exam['duration'] ?? 0) ?>"
+                                    data-total="<?= (int)($exam['total_marks'] ?? 0) ?>"
+                                    data-status="<?= htmlspecialchars($exam['status'] ?? 'draft', ENT_QUOTES) ?>"
+                                    data-bs-toggle="tooltip"
+                                    title="Edit"
+                                    aria-label="Edit exam">
+                                <i class="bi bi-pencil-square" aria-hidden="true"></i>
+                            </button>
+                            </td>
+
                           </tr>
                       <?php endforeach; ?>
                   <?php endif; ?>
@@ -334,7 +310,7 @@ try {
         </div>
 
         <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" class="btn btn-danger" data-bs-dismiss="modal">Cancel</button>
             <button type="submit" class="btn btn-primary">Create Exam</button>
         </div>
         </form>
@@ -400,7 +376,7 @@ try {
         </div>
 
         <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-danger" data-bs-dismiss="modal">Cancel</button>
         <button class="btn btn-warning" type="submit">Save Changes</button>
         </div>
 
@@ -416,70 +392,70 @@ try {
 <!-- Keep the robust edit modal population script and course-loading JS (unchanged) -->
 
 <script>
-(function () {
-  const GET_COURSES_URL = '../admin/get_courses.php'; // adjust path if needed
-  const programSelect = document.getElementById('program_id');
-  const courseSelect = document.getElementById('course_id');
-  const form = document.getElementById('createExamForm');
+    (function () {
+    const GET_COURSES_URL = '../admin/get_courses.php'; // adjust path if needed
+    const programSelect = document.getElementById('program_id');
+    const courseSelect = document.getElementById('course_id');
+    const form = document.getElementById('createExamForm');
 
-  function setCourseLoading(loading, message) {
-    courseSelect.disabled = loading;
-    courseSelect.innerHTML = loading ? `<option>Loading courses…</option>` : (message ? `<option value="">${message}</option>` : `<option value="">Select course</option>`);
-  }
-
-  async function loadCourses(programId) {
-    if (!programId) {
-      setCourseLoading(false, 'Select a program first');
-      courseSelect.required = false;
-      return;
+    function setCourseLoading(loading, message) {
+        courseSelect.disabled = loading;
+        courseSelect.innerHTML = loading ? `<option>Loading courses…</option>` : (message ? `<option value="">${message}</option>` : `<option value="">Select course</option>`);
     }
 
-    setCourseLoading(true);
+    async function loadCourses(programId) {
+        if (!programId) {
+        setCourseLoading(false, 'Select a program first');
+        courseSelect.required = false;
+        return;
+        }
 
-    try {
-      const resp = await fetch(`${GET_COURSES_URL}?program_id=${encodeURIComponent(programId)}`, {
-        credentials: 'same-origin',
-        headers: { 'Accept': 'application/json' }
-      });
+        setCourseLoading(true);
 
-      const payload = await resp.json();
+        try {
+        const resp = await fetch(`${GET_COURSES_URL}?program_id=${encodeURIComponent(programId)}`, {
+            credentials: 'same-origin',
+            headers: { 'Accept': 'application/json' }
+        });
 
-      if (!payload.success || !Array.isArray(payload.data) || payload.data.length === 0) {
-        setCourseLoading(false, 'No courses available');
+        const payload = await resp.json();
+
+        if (!payload.success || !Array.isArray(payload.data) || payload.data.length === 0) {
+            setCourseLoading(false, 'No courses available');
+            courseSelect.required = false;
+            courseSelect.disabled = true;
+            return;
+        }
+
+        // populate options
+        courseSelect.innerHTML = '<option value="">Select course</option>';
+        payload.data.forEach(c => {
+            const opt = document.createElement('option');
+            opt.value = c.id;
+            opt.textContent = c.title;
+            courseSelect.appendChild(opt);
+        });
+
+        courseSelect.disabled = false;
+        courseSelect.required = true;
+        } catch (err) {
+        console.error('Failed to load courses', err);
+        setCourseLoading(false, 'Unable to load');
         courseSelect.required = false;
         courseSelect.disabled = true;
-        return;
-      }
-
-      // populate options
-      courseSelect.innerHTML = '<option value="">Select course</option>';
-      payload.data.forEach(c => {
-        const opt = document.createElement('option');
-        opt.value = c.id;
-        opt.textContent = c.title;
-        courseSelect.appendChild(opt);
-      });
-
-      courseSelect.disabled = false;
-      courseSelect.required = true;
-    } catch (err) {
-      console.error('Failed to load courses', err);
-      setCourseLoading(false, 'Unable to load');
-      courseSelect.required = false;
-      courseSelect.disabled = true;
+        }
     }
-  }
 
-  if (programSelect) {
-    programSelect.addEventListener('change', function () {
-      loadCourses(this.value);
-    });
+    if (programSelect) {
+        programSelect.addEventListener('change', function () {
+        loadCourses(this.value);
+        });
 
-    // If modal reopens and program already selected, preload courses
-    if (programSelect.value) {
-      loadCourses(programSelect.value);
+        // If modal reopens and program already selected, preload courses
+        if (programSelect.value) {
+        loadCourses(programSelect.value);
+        }
     }
-  }
 
   // Integrate with Bootstrap validation; also ensure a course is chosen if required
   if (form) {
