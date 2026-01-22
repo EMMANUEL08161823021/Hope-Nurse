@@ -12,15 +12,43 @@ if (isset($_SESSION['user'])) {
 <title>Login | Hope Nurse Exam</title>
 </head>
 
-<body class="bg-light">
+<style>
+
+    .body {
+        background: #042c2c;
+    }
+    .form-control:focus {
+        border-color: #eab32e !important;
+        box-shadow: 0 0 0 .2rem rgba(234,179,46,0.25) !important;
+        outline: none;
+    }
+
+    .form-control:focus-visible {
+        outline: 2px solid rgba(234,179,46,0.35);
+        outline-offset: 2px;
+    }
+</style>
+
+<body class="body">
 
 <div class="container min-vh-100 d-flex align-items-center justify-content-center">
-    <div class="card shadow-sm w-100 d-flex flex-row" style="max-width: 920px;">
+    <div class="card shadow-sm w-100 d-flex flex-row" style="max-width: 920px; height: 550px;">
 
+        <!-- RIGHT: Illustration / Info -->
+        <div class="d-none d-md-flex flex-column align-items-center justify-content-center p-4"
+             style="flex: 1; background:#f8fafc; border-left:1px solid rgba(0,0,0,0.05);">
+            <div class="text-center">
+            
+
+                <!-- Lightweight SVG -->
+                 <img height="100" src="https://www.hopenurse.com/photos/Original%20logo%20NBG.png" alt= "logo"/>
+         
+            </div>
+        </div>
         <!-- LEFT: Login Form -->
-        <div class="card-body p-4 d-flex flex-column justify-content-center" style="flex: 1;">
-            <div class="text-center mb-4">
-                <h4 class="mb-1">Welcome Back</h4>
+        <div class="card-body p-4 d-flex flex-column justify-content-center" style="flex: 2;">
+            <div class="text-left mb-4">
+                <h4 class="mb-1" style="color: #eab32e;">Welcome Back</h4>
                 <p class="text-muted small mb-0">Login to continue your Hope journey</p>
             </div>
 
@@ -34,30 +62,29 @@ if (isset($_SESSION['user'])) {
 
             <form method="POST" action="register.php">
                 <div class="mb-3">
-                    <label class="form-label">Email address</label>
-                    <input
-                        type="email"
-                        name="email"
-                        class="form-control"
-                        placeholder="you@example.com"
-                        required
-                        autofocus
-                    >
+                <label class="form-label text-dark">Email address</label>
+                <input
+                    type="email"
+                    name="email"
+                    class="form-control"
+                    required
+                    autofocus
+                >
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label">Password</label>
-                    <input
-                        type="password"
-                        name="password"
-                        class="form-control"
-                        placeholder="Enter your password"
-                        required
-                    >
+                <label class="form-label text-dark">Password</label>
+                <input
+                    type="password"
+                    name="password"
+                    class="form-control"
+                    required
+                >
                 </div>
 
+
                 <div class="d-grid mb-3">
-                    <button class="btn btn-primary">Login</button>
+                    <button class="btn" style="background-color: #eab32e;">Login</button>
                 </div>
 
                 <p class="text-center small text-muted mb-0">
@@ -66,22 +93,6 @@ if (isset($_SESSION['user'])) {
             </form>
         </div>
 
-        <!-- RIGHT: Illustration / Info -->
-        <div class="d-none d-md-flex flex-column align-items-center justify-content-center p-4"
-             style="flex: 1; background:#f8fafc; border-left:1px solid rgba(0,0,0,0.05);">
-            <div class="text-center">
-                <h5 class="mb-2">Welcome to Hope</h5>
-                <p class="small text-muted mb-3">
-                    Prepare for NCLEX, track progress, and apply for the Cradle Program.
-                </p>
-
-                <!-- Lightweight SVG -->
-                <svg width="160" height="120" viewBox="0 0 160 120" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                    <rect x="4" y="4" width="152" height="112" rx="8" fill="#fff" stroke="#e9ecef"/>
-                    <path d="M20 40h120v6H20zM20 60h80v6H20zM20 80h100v6H20z" fill="#ced4da"/>
-                </svg>
-            </div>
-        </div>
 
     </div>
 </div>
