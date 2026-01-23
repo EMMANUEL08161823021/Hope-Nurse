@@ -22,6 +22,7 @@ $course_id   = post('course_id');
 $duration    = post('duration');
 $total_marks = post('total_marks');
 $status      = post('status');
+$num_questions = post('num_questions');
 
 $errors = [];
 
@@ -43,6 +44,10 @@ if (!in_array($status, $allowedStatuses, true)) {
     $errors[] = "Invalid status selected.";
 }
 
+if (empty($num_questions) || !is_numeric($num_questions) || (int)$num_questions < 1) {
+    $errors[] = "Number of questions must be at least 1.";
+}
+
 // ensure admin is logged in and we have an id for FK
 if (empty($_SESSION['user']['id']) || !is_numeric($_SESSION['user']['id'])) {
     $errors[] = "Unable to identify the current user. Please login and try again.";
@@ -59,6 +64,7 @@ if (!empty($errors)) {
 $program_id  = (int)$program_id;
 $course_id   = (int)$course_id;
 $duration    = (int)$duration;
+$num_questions = (int)$num_questions;
 $total_marks = (int)$total_marks;
 $created_by  = (int)$_SESSION['user']['id'];
 
@@ -85,16 +91,36 @@ try {
     }
 
     // Insert exam (no title/description)
-    $sql = "INSERT INTO exams (program_id, course_id, duration, total_marks, status, created_by, created_at)
-            VALUES (:program_id, :course_id, :duration, :total_marks, :status, :created_by, NOW())";
+    $sql = "INSERT INTO exams (
+            program_id,
+            course_id,
+            duration,
+            total_marks,
+            num_questions,
+            status,
+            created_by,
+            created_at
+        )
+        VALUES (
+            :program_id,
+            :course_id,
+            :duration,
+            :total_marks,
+            :num_questions,
+            :status,
+            :created_by,
+            NOW()
+        )";
+
     $stmt = $pdo->prepare($sql);
     $stmt->execute([
-        ':program_id'  => $program_id,
-        ':course_id'   => $course_id,
-        ':duration'    => $duration,
-        ':total_marks' => $total_marks,
-        ':status'      => $status,
-        ':created_by'  => $created_by
+        ':program_id'    => $program_id,
+        ':course_id'     => $course_id,
+        ':duration'      => $duration,
+        ':total_marks'   => $total_marks,
+        ':num_questions' => $num_questions,
+        ':status'        => $status,
+        ':created_by'    => $created_by
     ]);
 
     $_SESSION['flash'] = 'Exam created successfully.';
@@ -108,6 +134,7 @@ try {
         'course_id' => $course_id,
         'duration' => $duration,
         'total_marks' => $total_marks,
+        'num_questions' => $num_questions,
         'created_by' => $created_by
     ]));
 

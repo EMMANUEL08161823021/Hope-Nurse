@@ -160,7 +160,9 @@ $questions = $qStmt->fetchAll(PDO::FETCH_ASSOC);
 // Counts
 $qCountStmt = $pdo->prepare("SELECT COUNT(*) FROM questions WHERE exam_id = ?");
 $qCountStmt->execute([$exam_id]);
+$createdQuestions = (int)$qCountStmt->fetchColumn();
 $totalQuestions = (int)$qCountStmt->fetchColumn();
+$expectedQuestions = (int)($exam['num_questions'] ?? 0);
 
 $attemptsStmt = $pdo->prepare("SELECT COUNT(*) FROM attempts WHERE exam_id = ?");
 $attemptsStmt->execute([$exam_id]);
@@ -282,10 +284,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_exam'])) {
             </div>
 
             <div class="row mb-3">
-                <div class="col-md-4">
-                    <strong>Total Questions:</strong><br>
-                    <?= $totalQuestions ?>
+               <div class="col-md-4">
+                    <strong>Questions:</strong><br>
+                    <span class="badge bg-primary">
+                        <?= $createdQuestions ?> / <?= $expectedQuestions ?>
+                    </span>
                 </div>
+
 
                 <div class="col-md-4">
                     <strong>Duration:</strong><br>

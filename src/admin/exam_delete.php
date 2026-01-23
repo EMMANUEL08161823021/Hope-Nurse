@@ -23,7 +23,7 @@ if ($exam_id <= 0) {
 
 try {
     // Fetch exam
-    $stmt = $pdo->prepare("SELECT id, title, status FROM exams WHERE id = ? LIMIT 1");
+    $stmt = $pdo->prepare("SELECT id, status FROM exams WHERE id = ? LIMIT 1");
     $stmt->execute([$exam_id]);
     $exam = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -69,7 +69,7 @@ try {
 
     $pdo->commit();
 
-    $_SESSION['flash'] = 'Exam "' . $exam['title'] . '" deleted successfully.';
+    $_SESSION['flash'] = 'Exam deleted successfully.';
 } catch (Exception $e) {
     if ($pdo->inTransaction()) $pdo->rollBack();
     error_log('exam_delete error: ' . $e->getMessage());
