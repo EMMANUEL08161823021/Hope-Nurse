@@ -225,19 +225,17 @@ try {
                                     <?php endif; ?>
 
                                     <!-- Edit: embed minimal data attributes needed for edit modal -->
-                                    <button class="btn btn-warning btn-sm edit-exam-btn"
-                                            data-bs-toggle="modal"
-                                            data-bs-target="#editExamModal"
-                                            data-id="<?= (int)$exam['id'] ?>"
-                                            data-program_id="<?= (int)($exam['program_id'] ?? 0) ?>"
-                                            data-course_id="<?= (int)($exam['course_id'] ?? 0) ?>"
-                                            data-duration="<?= (int)($exam['duration'] ?? 0) ?>"
-                                            data-total="<?= (int)($exam['total_marks'] ?? 0) ?>"
-                                            data-status="<?= htmlspecialchars($exam['status'] ?? 'draft', ENT_QUOTES) ?>"
-                                            data-bs-toggle="tooltip"
-                                            title="Edit"
-                                            aria-label="Edit exam">
-                                        <i class="bi bi-pencil-square" aria-hidden="true"></i>
+                                    <button
+                                        class="btn btn-sm btn-warning edit-exam-btn"
+                                        data-id="<?= $exam['id'] ?>"
+                                        data-program="<?= $exam['program_id'] ?>"
+                                        data-course="<?= $exam['course_id'] ?>"
+                                        data-duration="<?= $exam['duration'] ?>"
+                                        data-total="<?= $exam['total_marks'] ?>"
+                                        data-questions="<?= $exam['num_questions'] ?>"
+                                        data-status="<?= $exam['status'] ?>"
+                                    >
+                                        Edit
                                     </button>
                                 </td>
                           </tr>
@@ -381,18 +379,22 @@ try {
         </div>
 
         <div class="row">
-            <div class="col-md-6 mb-3">
-            <label for="edit_duration" class="form-label">Duration (minutes)</label>
-            <input id="edit_duration" type="number" name="duration" class="form-control" min="1" required>
-            <div class="invalid-feedback">Enter duration (min 1).</div>
+            <div class="col-md-4 mb-3">
+                <label for="edit_duration" class="form-label">Duration (minutes)</label>
+                <input id="edit_duration" type="number" name="duration" class="form-control" min="1" required>
             </div>
 
-            <div class="col-md-6 mb-3">
-            <label for="edit_total" class="form-label">Total Marks</label>
-            <input id="edit_total" type="number" name="total_marks" class="form-control" min="0" required>
-            <div class="invalid-feedback">Enter total marks.</div>
+            <div class="col-md-4 mb-3">
+                <label for="edit_total" class="form-label">Total Marks</label>
+                <input id="edit_total" type="number" name="total_marks" class="form-control" min="0" required>
+            </div>
+
+            <div class="col-md-4 mb-3">
+                <label for="edit_num_questions" class="form-label">Questions</label>
+                <input id="edit_num_questions" type="number" name="num_questions" class="form-control" min="1" required>
             </div>
         </div>
+
 
         <div class="mb-3">
             <label for="edit_status" class="form-label">Status</label>
@@ -632,6 +634,24 @@ try {
     }, false);
   }
 })();
+
+document.querySelectorAll('.edit-exam-btn').forEach(button => {
+    button.addEventListener('click', () => {
+        document.getElementById('edit_exam_id').value = button.dataset.id;
+        document.getElementById('edit_program_id').value = button.dataset.program;
+        document.getElementById('edit_duration').value = button.dataset.duration;
+        document.getElementById('edit_total').value = button.dataset.total;
+        document.getElementById('edit_num_questions').value = button.dataset.questions;
+        document.getElementById('edit_status').value = button.dataset.status;
+
+        // Enable course dropdown
+        const courseSelect = document.getElementById('edit_course_id');
+        courseSelect.disabled = false;
+        courseSelect.innerHTML = `<option value="${button.dataset.course}" selected>Current course</option>`;
+
+        new bootstrap.Modal(document.getElementById('editExamModal')).show();
+    });
+});
 
 (function () {
     const GET_COURSES_URL = '../admin/get_courses.php'; // adjust relative path if needed
