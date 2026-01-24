@@ -1,59 +1,18 @@
 <?php
 // src/auth/register.php
 session_start();
-require_once '../config/db.php';
 
-$errors = [];
-$old = [
+$errors = $_SESSION['register_errors'] ?? [];
+$old    = $_SESSION['register_old'] ?? [
     'full_name' => '',
-    'email' => ''
+    'email'     => '',
+    'country'   => '',
+    'program'   => 'Hope Prep'
 ];
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // normalize and validate
-    $full_name = trim((string)($_POST['full_name'] ?? ''));
-    $email = trim((string)($_POST['email'] ?? ''));
-    $password = $_POST['password'] ?? '';
-    $confirm_password = $_POST['confirm_password'] ?? '';
+unset($_SESSION['register_errors'], $_SESSION['register_old']);
 
-    $old['full_name'] = $full_name;
-    $old['email'] = $email;
-
-    if ($full_name === '') {
-        $errors[] = 'Full name is required.';
-    }
-    if ($email === '') {
-        $errors[] = 'Email is required.';
-    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        $errors[] = 'Invalid email format.';
-    }
-    if ($password === '') {
-        $errors[] = 'Password is required.';
-    }
-    if ($password !== $confirm_password) {
-        $errors[] = 'Passwords do not match.';
-    }
-
-    // check if email already exists
-    if (empty($errors)) {
-        $stmt = $pdo->prepare("SELECT id FROM users WHERE email = ? LIMIT 1");
-        $stmt->execute([$email]);
-        if ($stmt->fetch()) {
-            $errors[] = 'Email is already registered.';
-        }
-    }
-
-    // if no errors, insert user
-    if (empty($errors)) {
-        $hash = password_hash($password, PASSWORD_DEFAULT);
-        $stmt = $pdo->prepare("INSERT INTO users (full_name, email, password, role, status) VALUES (?, ?, ?, 'student', 'active')");
-        $stmt->execute([$full_name, $email, $hash]);
-
-        $_SESSION['flash'] = 'Account created successfully. You can now log in.';
-        header('Location: login.php');
-        exit;
-    }
-}
+$allowedPrograms = ['Hope Prep', 'DIY', 'Cradle'];
 ?>
 
 <?php require '../constants/header.php'; ?>
@@ -61,7 +20,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </head>
 
 <style>
-
     .body {
         background: #042c2c;
     }
@@ -76,6 +34,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         outline-offset: 2px;
     }
 </style>
+
 <body class="body">
 
 <div class="container py-5">
@@ -96,79 +55,60 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </div>
                     <?php endif; ?>
 
-                    <form method="POST" novalidate>
+                    <form method="POST" action="register_post.php" novalidate>
+
                         <div class="mb-3">
-                            <label for="full_name" class="form-label">Full Name</label>
-                            <input type="text" class="form-control" id="full_name" name="full_name" required
-                                   value="<?= htmlspecialchars($old['full_name']) ?>">
-                            <div class="invalid-feedback">Please enter your full name.</div>
+                            <label class="form-label">Full Name</label>
+                            <input type="text" name="full_name" class="form-control"
+                                   value="<?= htmlspecialchars($old['full_name']) ?>" required>
                         </div>
 
                         <div class="mb-3">
-                            <label for="email" class="form-label">Email Address</label>
-                            <input type="email" class="form-control" id="email" name="email" required
-                                   value="<?= htmlspecialchars($old['email']) ?>">
-                            <div class="invalid-feedback">Please enter a valid email address.</div>
+                            <label class="form-label">Email</label>
+                            <input type="email" name="email" class="form-control"
+                                   value="<?= htmlspecialchars($old['email']) ?>" required>
                         </div>
 
                         <div class="mb-3">
-                            <label for="email" class="form-label">Program</label>
-                            <input type="email" class="form-control" id="email" name="email" required
-                                   value="<?= htmlspecialchars($old['email']) ?>">
-                            <div class="invalid-feedback">Please enter a valid email address.</div>
+                            <label class="form-label">Country</label>
+                            <input type="text" name="country" class="form-control"
+                                   value="<?= htmlspecialchars($old['country']) ?>">
                         </div>
 
                         <div class="mb-3">
-                            <label for="password" class="form-label">Password</label>
-                            <input type="password" class="form-control" id="password" name="password" required>
-                            <div class="invalid-feedback">Please enter a password.</div>
+                            <label class="form-label">Program</label>
+                            <select name="program" class="form-select" required>
+                                <?php foreach ($allowedPrograms as $p): ?>
+                                    <option value="<?= $p ?>" <?= $old['program'] === $p ? 'selected' : '' ?>>
+                                        <?= $p ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
                         </div>
 
                         <div class="mb-3">
-                            <label for="confirm_password" class="form-label">Confirm Password</label>
-                            <input type="password" class="form-control" id="confirm_password" name="confirm_password" required>
-                            <div class="invalid-feedback">Please confirm your password.</div>
+                            <label class="form-label">Password</label>
+                            <input type="password" name="password" class="form-control" required minlength="8">
                         </div>
 
-                        <button type="submit" class="btn btn-primary w-100">Register</button>
+                        <div class="mb-3">
+                            <label class="form-label">Confirm Password</label>
+                            <input type="password" name="confirm_password" class="form-control" required>
+                        </div>
+
+                        <button class="btn btn-warning w-100">Create Account</button>
                     </form>
 
                     <p class="text-center mt-3">
-                        Already have an account? <a href="login.php">Login here</a>.
+                        Already registered? <a href="login.php">Login</a>
                     </p>
+
                 </div>
             </div>
 
         </div>
     </div>
 </div>
-
-<script>
-// Bootstrap client-side validation + password match
-(() => {
-  'use strict';
-  const forms = document.querySelectorAll('form');
-  forms.forEach(form => {
-    form.addEventListener('submit', event => {
-      const password = document.getElementById('password');
-      const confirm = document.getElementById('confirm_password');
-
-      if (!form.checkValidity() || password.value !== confirm.value) {
-        event.preventDefault();
-        event.stopPropagation();
-        if (password.value !== confirm.value) {
-          confirm.setCustomValidity('Passwords do not match.');
-          confirm.reportValidity();
-        }
-      } else {
-        confirm.setCustomValidity('');
-      }
-
-      form.classList.add('was-validated');
-    }, false);
-  });
-})();
-</script>
 
 </body>
 </html>

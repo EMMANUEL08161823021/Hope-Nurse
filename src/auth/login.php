@@ -13,7 +13,6 @@ if (isset($_SESSION['user'])) {
 </head>
 
 <style>
-
     .body {
         background: #042c2c;
     }
@@ -60,7 +59,7 @@ if (isset($_SESSION['user'])) {
                 <?php unset($_SESSION['login_error']); ?>
             <?php endif; ?>
 
-            <form method="POST" action="register.php">
+            <form method="POST" action="login_post.php">
                 <div class="mb-3">
                 <label class="form-label text-dark">Email address</label>
                 <input
@@ -90,6 +89,8 @@ if (isset($_SESSION['user'])) {
                 <p class="text-center small text-muted mb-0">
                     © Hope Nurse
                 </p>
+
+                <p>You dont have an account? <a href="register.php">Register Here</a></p>
             </form>
         </div>
 

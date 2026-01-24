@@ -83,7 +83,7 @@ if ($programId === null) {
 <?php require '../constants/header.php'?>
 <title>Available Exams</title>
 </head>
-<body class="container mt-4">
+<body class="">
 
     <h3>Available Exams</h3>
 
