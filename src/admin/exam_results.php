@@ -18,7 +18,7 @@ $examStmt = $pdo->prepare("
         e.status,
         e.created_at,
         e.duration,
-        e.total_marks,
+        e.results_released,
         c.title AS course_title,
         c.description AS course_description,
         p.name AS program_name,
@@ -35,6 +35,21 @@ $exam = $examStmt->fetch(PDO::FETCH_ASSOC);
 if (!$exam) {
     http_response_code(404);
     die('Exam not found.');
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['toggle_results'])) {
+    $newState = $exam['results_released'] ? 0 : 1;
+
+    $stmt = $pdo->prepare("
+        UPDATE exams
+        SET results_released = ?
+        WHERE id = ?
+        LIMIT 1
+    ");
+    $stmt->execute([$newState, $exam_id]);
+
+    header("Location: exam_results.php?exam_id=" . $exam_id);
+    exit;
 }
 
 /* Optional search/filter by student name or email (GET q) */
@@ -68,6 +83,7 @@ $attemptsStmt = $pdo->prepare("
 ");
 $attemptsStmt->execute($params);
 $attempts = $attemptsStmt->fetchAll(PDO::FETCH_ASSOC);
+
 
 /* small date helper */
 function fmtDate($d) {
@@ -104,6 +120,22 @@ function fmtDate($d) {
                 &nbsp; • &nbsp;
                 Created at: <?= htmlspecialchars($exam['created_at'] ?? '—') ?>
             </div>
+
+            <form method="post" class="mt-3">
+                <button
+                    type="submit"
+                    name="toggle_results"
+                    class="btn btn-sm <?= $exam['results_released'] ? 'btn-danger' : 'btn-success' ?>"
+                    onclick="return confirm('Are you sure you want to <?= $exam['results_released'] ? 'hide' : 'release' ?> results?');"
+                >
+                    <?= $exam['results_released'] ? 'Hide Results' : 'Release Results' ?>
+                </button>
+
+                <span class="ms-2 small text-muted">
+                    <?= $exam['results_released'] ? 'Students can view results' : 'Results are hidden from students' ?>
+                </span>
+            </form>
+
         </div>
 
         <form method="get" class="row g-2 align-items-center mb-3" style="max-width:560px;">
@@ -153,8 +185,8 @@ function fmtDate($d) {
                                 <?php if (!empty($exam['total_marks'])): ?>/ <?= (int)$exam['total_marks'] ?><?php endif; ?>
                             </td>
                             <td>
-                                <span class="badge bg-<?= $a['attempt_status'] === 'completed' ? 'success' : 'secondary' ?>">
-                                    <?= htmlspecialchars(ucfirst($a['attempt_status'])) ?>
+                                <span class="badge bg-<?= in_array($a['attempt_status'], ['submitted','auto_submitted']) ? 'success' : 'secondary' ?>">
+                                    <?= htmlspecialchars(ucfirst(str_replace('_', ' ', $a['attempt_status']))) ?>
                                 </span>
                             </td>
                             <td><?= htmlspecialchars(!empty($a['duration_minutes']) ? (int)$a['duration_minutes'] . ' min' : '—') ?></td>

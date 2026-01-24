@@ -133,6 +133,56 @@ if ($totalCourses > 0 && !empty($_SESSION['user']['id'])) {
         }
     }
 }
+
+// ----- Exams completed counts -----
+// statuses considered as completed
+$completedStatuses = ['submitted','auto_submitted','completed'];
+
+$completedExamsOverall = 0;
+$completedExamsProgram = 0;
+$totalProgramExams = 0;
+
+try {
+    // overall distinct exams completed by this user
+    $sql = "SELECT COUNT(DISTINCT exam_id) FROM attempts WHERE student_id = ? AND status IN (" .
+           implode(',', array_fill(0, count($completedStatuses), '?')) . ")";
+    $params = array_merge([ $userId ], $completedStatuses);
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($params);
+    $completedExamsOverall = (int)$stmt->fetchColumn();
+} catch (Exception $e) {
+    error_log("[dashboard] failed to compute completedExamsOverall: " . $e->getMessage());
+    $completedExamsOverall = 0;
+}
+
+if (!empty($programId)) {
+    try {
+        // count exams that belong to this program (total)
+        $stmt = $pdo->prepare("SELECT COUNT(*) FROM exams WHERE program_id = ? ");
+        $stmt->execute([$programId]);
+        $totalProgramExams = (int)$stmt->fetchColumn();
+
+        // distinct exams completed by this user within this program
+        $placeholders = implode(',', array_fill(0, count($completedStatuses), '?'));
+        $sql2 = "
+            SELECT COUNT(DISTINCT a.exam_id)
+            FROM attempts a
+            JOIN exams e ON a.exam_id = e.id
+            WHERE a.student_id = ?
+              AND e.program_id = ?
+              AND a.status IN ($placeholders)
+        ";
+        $params2 = array_merge([ $userId, $programId ], $completedStatuses);
+        $stmt = $pdo->prepare($sql2);
+        $stmt->execute($params2);
+        $completedExamsProgram = (int)$stmt->fetchColumn();
+    } catch (Exception $e) {
+        error_log("[dashboard] failed to compute program exam counts: " . $e->getMessage());
+        $completedExamsProgram = 0;
+        $totalProgramExams = 0;
+    }
+}
+
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -212,7 +262,7 @@ if ($totalCourses > 0 && !empty($_SESSION['user']['id'])) {
                                     <small class="text-muted"><?= $programName ? htmlspecialchars($programName) : '—' ?></small>
                                 </h5>
                                 <div class="small text-muted">
-                                    <?= (int)$completedCount ?> / <?= (int)$totalCourses ?> completed
+                                    Courses: <?= (int)$completedExamsProgram ?> / <?= (int)$totalCourses ?> completed
                                 </div>
                             </div>
 

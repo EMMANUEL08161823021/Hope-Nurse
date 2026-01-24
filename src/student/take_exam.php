@@ -7,7 +7,7 @@ require_once '../config/db.php';
 $attempt_id = intval($_GET['attempt_id'] ?? 0);
 if (!$attempt_id) die('Missing attempt');
 
-
+// Fetch attempt + exam.duration (use exam duration always)
 $stmt = $pdo->prepare("
     SELECT 
         a.*,
@@ -20,30 +20,43 @@ $stmt = $pdo->prepare("
     LIMIT 1
 ");
 $stmt->execute([$attempt_id, $_SESSION['user']['id']]);
-$attempt = $stmt->fetch();
+$attempt = $stmt->fetch(PDO::FETCH_ASSOC);
 if (!$attempt) die('Attempt not found or not yours');
 
 if ($attempt['status'] !== 'in_progress') {
     die('This attempt is not in progress.');
 }
 
+/*
+ * Use the exam's configured duration (e.duration / exam_duration) ALWAYS.
+ * This intentionally ignores attempts.duration_minutes.
+ */
+$durationMinutes = 0;
+if (isset($attempt['exam_duration'])) {
+    $durationMinutes = (int)$attempt['exam_duration'];
+}
 
+// Safety fallback (shouldn't normally be needed)
+if ($durationMinutes <= 0) {
+    error_log("[take_exam] exam_duration missing/invalid for attempt_id={$attempt_id}; falling back to 1 minute.");
+    $durationMinutes = 1;
+}
 
-// compute end time server-side
+// compute end time server-side using the exam duration and the attempt's started_at
 $started = new DateTime($attempt['started_at']);
 $endTime = clone $started;
-$endTime->modify('+'.((int)$attempt['duration_minutes']).' minutes');
+$endTime->modify('+'. $durationMinutes .' minutes');
 
 // load questions with options
 $qstmt = $pdo->prepare("SELECT * FROM questions WHERE exam_id = ? ORDER BY id ASC");
 $qstmt->execute([$attempt['exam_id']]);
-$questions = $qstmt->fetchAll();
+$questions = $qstmt->fetchAll(PDO::FETCH_ASSOC);
 
 // load existing answers for this attempt
 $ansStmt = $pdo->prepare("SELECT question_id, answer_text FROM answers WHERE attempt_id = ?");
 $ansStmt->execute([$attempt_id]);
 $saved = [];
-foreach ($ansStmt->fetchAll() as $r) $saved[$r['question_id']] = $r['answer_text'];
+foreach ($ansStmt->fetchAll(PDO::FETCH_ASSOC) as $r) $saved[$r['question_id']] = $r['answer_text'];
 
 ?>
 <?php require '../constants/header.php'?>
@@ -54,9 +67,10 @@ foreach ($ansStmt->fetchAll() as $r) $saved[$r['question_id']] = $r['answer_text
 
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h4><?= htmlspecialchars($attempt['title']) ?></h4>
-    
-    <div>
-      Time left: <span id="timer">--:--</span>
+
+    <div class="text-end">
+      <div class="small text-muted">Duration: <strong><?= (int)$durationMinutes ?> min</strong></div>
+      Time left: <div><span id="timer">--:--</span></div>
     </div>
   </div>
 
@@ -75,10 +89,10 @@ foreach ($ansStmt->fetchAll() as $r) $saved[$r['question_id']] = $r['answer_text
 
             if (in_array($q['question_type'], ['single_choice','multiple_choice','true_false'])):
               // load options
-
               $opt = $pdo->prepare("SELECT * FROM options WHERE question_id = ? ORDER BY id ASC");
               $opt->execute([$qid]);
-              $opts = $opt->fetchAll();
+              $opts = $opt->fetchAll(PDO::FETCH_ASSOC);
+
               if ($q['question_type'] === 'single_choice' || $q['question_type'] === 'true_false'):
                   foreach ($opts as $o):
                       $checked = ($savedAnswer !== null && trim($savedAnswer) === (string)$o['id']) ? 'checked' : '';
@@ -145,13 +159,14 @@ function collectAnswers() {
   const data = { attempt_id: attemptId, answers: [] };
   document.querySelectorAll('.question').forEach(q => {
     const qid = q.dataset.qid;
-    // find inputs with name starting with q_{qid}
+    // radio
     const radio = q.querySelector('input[type="radio"][name="q_'+qid+'"]');
     if (radio) {
       const selected = q.querySelector('input[type="radio"][name="q_'+qid+'"]:checked');
       data.answers.push({question_id: qid, answer: selected ? selected.value : null});
       return;
     }
+    // checkboxes
     const checkboxes = q.querySelectorAll('input[type="checkbox"][name="q_'+qid+'[]"]');
     if (checkboxes.length) {
       const vals = [];
@@ -159,6 +174,7 @@ function collectAnswers() {
       data.answers.push({question_id: qid, answer: JSON.stringify(vals)});
       return;
     }
+    // textarea
     const txt = q.querySelector('textarea[name="q_'+qid+'"]');
     if (txt) {
       data.answers.push({question_id: qid, answer: txt.value.trim()});
@@ -171,46 +187,74 @@ function collectAnswers() {
 setInterval(()=> {
   const payload = collectAnswers();
   if (!payload.answers.length) return;
+  // use navigator.sendBeacon for autosave
   navigator.sendBeacon('/hope-nurse/src/api/save_answers.php', JSON.stringify(payload));
 }, 10000);
 
-/* Manual save + submit */
+/* Manual save + submit with confirmation */
 document.getElementById('submitBtn').addEventListener('click', ()=> {
-  console.log("click");
-  
-  saveThenSubmit(false);
+  // confirm with the student
+  const confirmed = window.confirm('Are you sure you wanna submit?');
+  if (!confirmed) return;
+
+  // disable the submit button to prevent double-clicks
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true;
+  btn.textContent = 'Submitting...';
+
+  saveThenSubmit(false).finally(() => {
+    // re-enable briefly in case of failure (server-side failure will redirect accordingly)
+    btn.disabled = false;
+    btn.textContent = 'Submit Exam';
+  });
 });
 
-/* Save via fetch then submit */
+/* Save via fetch then submit
+   Returns a Promise that resolves after submit completes (success or failure)
+*/
 function saveThenSubmit(isAuto) {
   const payload = collectAnswers();
-  fetch('/hope-nurse/src/api/save_answers.php', {
+
+  // First save answers
+  return fetch('/hope-nurse/src/api/save_answers.php', {
     method: 'POST',
     headers: {'Content-Type':'application/json'},
     body: JSON.stringify(payload)
-  }).then(()=> {
-    // then call submit
-    fetch('/hope-nurse/src/api/submit_attempt.php', {
+  }).then(() => {
+    // Then call submit_attempt endpoint
+    return fetch('/hope-nurse/src/api/submit_attempt.php', {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
       body: JSON.stringify({attempt_id: attemptId, auto: isAuto ? 1 : 0})
-    }).then(r=>r.json()).then(res=> {
-      if (res.success) {
-        alert('Exam submitted. Score: ' + res.score);
-        window.location.href = '/hope-nurse/src/student/result.php?attempt_id=' + attemptId;
-      } else {
-        alert('Submission failed: ' + (res.error || 'Unknown'));
-      }
-    });
+    }).then(r => r.json());
+  }).then(res => {
+    if (res && res.success) {
+      // don't show the score; notify and redirect to student dashboard
+      alert('Exam submitted successfully.');
+      window.location.href = '/hope-nurse/src/student/dashboard.php';
+    } else {
+      // show error and keep student on the page
+      const message = (res && res.error) ? res.error : 'Submission failed. Please try again.';
+      alert(message);
+    }
+  }).catch(err => {
+    console.error('Submission error', err);
+    alert('Submission failed due to a network/server error. Please try again.');
   });
 }
 
-/* Auto submit on timeout */
+/* Auto submit on timeout: no confirmation, just submit then redirect */
 function autoSubmit() {
-  saveThenSubmit(true);
+  // disable submit button to avoid interaction while auto-submitting
+  const btn = document.getElementById('submitBtn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Auto-submitting...'; }
+
+  saveThenSubmit(true).finally(() => {
+    // nothing else: saveThenSubmit already redirects on success
+  });
 }
 
-/* Save on page unload using sendBeacon */
+/* Save on page unload using sendBeacon (best-effort) */
 window.addEventListener('beforeunload', function(e) {
   const payload = collectAnswers();
   if (payload.answers.length) {
@@ -218,5 +262,6 @@ window.addEventListener('beforeunload', function(e) {
   }
 });
 </script>
+
 </body>
 </html>

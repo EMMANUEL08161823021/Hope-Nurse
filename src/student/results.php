@@ -9,11 +9,7 @@ if ($student_id <= 0) {
     die('Invalid student session.');
 }
 
-/*
-|--------------------------------------------------------------------------
-| Fetch all exams this student has attempted
-|--------------------------------------------------------------------------
-*/
+
 $stmt = $pdo->prepare("
     SELECT 
         a.id AS attempt_id,
@@ -27,8 +23,10 @@ $stmt = $pdo->prepare("
     JOIN exams e ON a.exam_id = e.id
     JOIN courses c ON e.course_id = c.id
     WHERE a.student_id = ?
+      AND e.results_released = 1
     ORDER BY a.created_at DESC
 ");
+
 
 $stmt->execute([$student_id]);
 $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -40,11 +38,13 @@ $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 <h3 class="mb-3">My Course Results</h3>
 
+
 <?php if (empty($results)): ?>
     <div class="alert alert-info">
-        You have not completed any exams yet.
+        Results have not been released yet.
     </div>
 <?php else: ?>
+
 
 <table class="table table-bordered table-striped">
     <thead class="table-light">
