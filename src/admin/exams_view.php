@@ -250,12 +250,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_exam'])) {
     <a href="dashboard.php" class="btn btn-secondary mb-3">← Back</a>
 
     <div class="card shadow-sm">
-        <div class="card-body">
-
+        <div class="p-4" style="background-color: #042c2c; color: #fff;">
             <h3><?= htmlspecialchars($exam['course_title'] ?? 'Untitled course') ?></h3>
             <p class="text-muted"><?= htmlspecialchars($exam['course_description'] ?? 'No description') ?></p>
-            <hr>
-
+        </div>
+        <div class="card-body">
             <div class="row mb-3">
                 <div class="col-md-3">
                     <strong>Status</strong><br>
@@ -286,7 +285,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_exam'])) {
             <div class="row mb-3">
                <div class="col-md-4">
                     <strong>Questions:</strong><br>
-                    <span class="badge bg-primary">
+                    <span class="badge bg-success">
                         <?= $createdQuestions ?> / <?= $expectedQuestions ?>
                     </span>
                 </div>
