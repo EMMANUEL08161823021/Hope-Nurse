@@ -197,7 +197,7 @@ try {
 
                                 <td><?= htmlspecialchars($exam['created_at'] ?? '') ?></td>
 
-                               <td class="text-nowrap">
+                               <td class="text-nowrap text-center">
                                 <div class="dropdown">
                                   <button
                                     class="btn btn-sm btn-light border rounded-circle"

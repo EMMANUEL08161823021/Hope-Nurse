@@ -90,7 +90,7 @@ if ($programId === null) {
     <?php if ($errorMsg): ?>
         <div class="alert alert-warning"><?= htmlspecialchars($errorMsg) ?></div>
     <?php elseif (empty($exams)): ?>
-        <div class="alert alert-info">
+        <div style="background-color: #eab32e;" class="alert alert-info">
             No available exams at the moment.
         </div>
     <?php else: ?>

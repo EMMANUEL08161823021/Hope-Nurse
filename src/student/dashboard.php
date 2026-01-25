@@ -191,21 +191,27 @@ if (!empty($programId)) {
     <title>Student Dashboard | Hope Nurse Exam</title>
     <link rel="stylesheet" href="../../assets/bootstrap.min.css">
     <style>
-        /* Simple tweaks for sidebar layout */
-        /* .sidebar {
-            min-height: 80vh;
-            border-right: 1px solid #e9ecef;
-        } */
-        .nav-link.active {
-            font-weight: 600;
-            background: rgba(0,0,0,0.03);
+        /* Sidebar link base */
+        .nav-pills .nav-link {
+            color: #ffffff;    
+            padding: .5rem .75rem;
             border-radius: 6px;
         }
-        .user-badge {
-            font-size: .9rem;
-            color: #6c757d;
+
+        .nav-item {
+            background-color: #eab32e;
+            color: #000 !important;      /* black text for contrast on gold */
+            border-color: #d79c1f;
+            border-radius: 6px;
         }
-    </style>
+
+        .nav-pills .nav-link:hover,
+        .nav-pills .nav-link:focus {
+            background-color: rgba(234,179,46,0.12);
+            color: #fff;
+            text-decoration: none;
+        }
+        </style>
 </head>
 <body>
 
@@ -220,7 +226,7 @@ if (!empty($programId)) {
 
             <ul class="nav nav-pills flex-column mb-auto">
                 <li class="nav-item">
-                    <a href="dashboard.php" class="nav-link active">
+                    <a href="dashboard.php" class="nav-link">
                     Dashboard
                     </a>
                 </li>
@@ -309,17 +315,6 @@ if (!empty($programId)) {
                                                 <div class="modal-body">
                                                     <p class="small text-muted"><?= nl2br(htmlspecialchars($course['description'] ?? 'No description available.')) ?></p>
 
-                                                    <hr>
-
-                                                    <p class="small text-muted mb-2">Course actions</p>
-                                                    <div class="d-flex gap-2">
-                                                        <a href="course.php?id=<?= (int)$course['id'] ?>" class="btn btn-primary btn-sm">
-                                                            Open Course Page
-                                                        </a>
-                                                        <a href="course_lessons.php?course_id=<?= (int)$course['id'] ?>" class="btn btn-outline-secondary btn-sm">
-                                                            See Lessons
-                                                        </a>
-                                                    </div>
                                                 </div>
                                                 <div class="modal-footer">
                                                     <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
@@ -342,7 +337,7 @@ if (!empty($programId)) {
                             <p class="card-text">
                                 Review completed exams and scores.
                             </p>
-                            <a href="results.php" class="btn btn-primary">
+                            <a href="results.php" class="btn btn-success">
                                 My Results
                             </a>
                         </div>
