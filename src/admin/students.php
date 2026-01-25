@@ -71,59 +71,90 @@ $students = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 </thead>
                 <tbody>
 
-                <?php if (count($students) === 0): ?>
+                <?php foreach ($students as $s): ?>
                     <tr>
-                        <td colspan="7" class="text-center">No students found</td>
-                    </tr>
-                <?php else: ?>
-                    <?php foreach ($students as $s): ?>
-                        <tr>
-                            <td><?= htmlspecialchars($s['full_name']) ?></td>
-                            <td><?= htmlspecialchars($s['email']) ?></td>
-                            <td><?= htmlspecialchars($s['country']) ?></td>
-                            <td><?= htmlspecialchars($s['program'] ?? '—') ?></td>
-                            <td>
-                                <span class="badge bg-<?= $s['status'] === 'active' ? 'success' : 'danger' ?>">
-                                    <?= htmlspecialchars(ucfirst($s['status'])) ?>
-                                </span>
-                            </td>
-                            <td><?= htmlspecialchars($s['created_at']) ?></td>
-                            <td>
-                                <!-- Change program (opens modal) -->
+                        <td><?= htmlspecialchars($s['full_name']) ?></td>
+                        <td><?= htmlspecialchars($s['email']) ?></td>
+                        <td><?= htmlspecialchars($s['country']) ?></td>
+                        <td><?= htmlspecialchars($s['program'] ?? '—') ?></td>
+                        <td>
+                            <span class="badge bg-<?= ($s['status'] === 'active') ? 'success' : 'danger' ?>">
+                                <?= htmlspecialchars(ucfirst($s['status'])) ?>
+                            </span>
+                        </td>
+                        <td><?= htmlspecialchars($s['created_at']) ?></td>
+
+                        <!-- Actions dropdown cell -->
+                        <td class="text-nowrap">
+                        <div class="dropdown">
+                            <button
+                            class="btn btn-sm btn-light border rounded-circle"
+                            type="button"
+                            id="studentActionsBtn<?= (int)$s['id'] ?>"
+                            data-bs-toggle="dropdown"
+                            aria-expanded="false"
+                            aria-haspopup="true"
+                            aria-controls="studentActionsMenu<?= (int)$s['id'] ?>"
+                            title="Actions"
+                            >
+                            <span class="visually-hidden">Actions</span>
+                            <i class="bi bi-three-dots-vertical" aria-hidden="true"></i>
+                            </button>
+
+                            <ul style="z-index: 2000;" class="dropdown-menu dropdown-menu-end" aria-labelledby="studentActionsBtn<?= (int)$s['id'] ?>" id="studentActionsMenu<?= (int)$s['id'] ?>" role="menu">
+                            <!-- Change Program (opens modal) -->
+                            <li role="presentation">
                                 <button
-                                    type="button"
-                                    class="btn btn-sm btn-outline-primary change-program-btn"
-                                    data-student-id="<?= (int)$s['id'] ?>"
-                                    data-student-name="<?= htmlspecialchars($s['full_name'], ENT_QUOTES) ?>"
-                                    data-current-program="<?= htmlspecialchars($s['program'] ?? '', ENT_QUOTES) ?>"
-                                    data-bs-toggle="modal"
-                                    data-bs-target="#changeProgramModal"
+                                type="button"
+                                class="dropdown-item change-program-btn"
+                                data-student-id="<?= (int)$s['id'] ?>"
+                                data-student-name="<?= htmlspecialchars($s['full_name'], ENT_QUOTES) ?>"
+                                data-current-program="<?= htmlspecialchars($s['program'] ?? '', ENT_QUOTES) ?>"
+                                data-bs-toggle="modal"
+                                data-bs-target="#changeProgramModal"
+                                role="menuitem"
                                 >
-                                    Change Program
+                                <i class="bi bi-person-lines-fill me-2" aria-hidden="true"></i>
+                                Change Program
                                 </button>
+                            </li>
 
-                                <!-- Toggle status -->
-                                <a href="student_toggle.php?id=<?= urlencode($s['id']) ?>"
-                                    class="btn btn-sm btn-warning">
-                                    <?= $s['status'] === 'active' ? 'Block' : 'Activate' ?>
+                            <!-- View attempts -->
+                            <li role="presentation">
+                                <a role="menuitem" class="dropdown-item" href="student_attempts.php?id=<?= urlencode($s['id']) ?>">
+                                <i class="bi bi-journal-text me-2" aria-hidden="true"></i>
+                                Attempts
                                 </a>
+                            </li>
 
-                                <!-- View attempts -->
-                                <a href="student_attempts.php?id=<?= urlencode($s['id']) ?>"
-                                    class="btn btn-sm btn-primary">
-                                    Attempts
+                            <!-- Toggle status -->
+                            <li role="presentation">
+                                <a role="menuitem" class="dropdown-item" href="student_toggle.php?id=<?= urlencode($s['id']) ?>">
+                                <i class="bi <?= ($s['status'] === 'active') ? 'bi-person-x-fill text-warning' : 'bi-person-check-fill text-success' ?> me-2" aria-hidden="true"></i>
+                                <?= $s['status'] === 'active' ? 'Block' : 'Activate' ?>
                                 </a>
+                            </li>
 
-                                <!-- Delete -->
-                                <a href="student_delete.php?id=<?= urlencode($s['id']) ?>"
-                                    class="btn btn-sm btn-danger"
-                                    onclick="return confirm('Delete this student permanently?')">
-                                    Delete
+                            <li><hr class="dropdown-divider"></li>
+
+                            <!-- Delete (confirmation) -->
+                            <li role="presentation">
+                                <a
+                                role="menuitem"
+                                class="dropdown-item text-danger"
+                                href="student_delete.php?id=<?= urlencode($s['id']) ?>"
+                                onclick="return confirm('Delete this student permanently?')"
+                                >
+                                <i class="bi bi-trash me-2" aria-hidden="true"></i>
+                                Delete
                                 </a>
-                            </td>
-                        </tr>
-                    <?php endforeach; ?>
-                <?php endif; ?>
+                            </li>
+                            </ul>
+                        </div>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+
 
                 </tbody>
             </table>

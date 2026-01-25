@@ -98,7 +98,9 @@ function fmtDate($d) {
 </head>
 <body class="container py-4">
 
-<a href="exams_view.php?id=<?= (int)$exam['id'] ?>" class="btn btn-outline-secondary mb-3 ms-2">Back to Exam</a>
+
+<a href="dashboard.php" class="btn btn-secondary">Back to Dashboard</a>
+
 
 <div class="card mb-4">
     <div class="card-body">
@@ -206,6 +208,5 @@ function fmtDate($d) {
     </div>
 </div>
 
-<a href="dashboard.php" class="btn btn-secondary">Back to Dashboard</a>
 </body>
 </html>

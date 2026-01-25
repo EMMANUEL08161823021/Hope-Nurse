@@ -58,6 +58,19 @@ try {
 <title>Admin Dashboard</title>
 </head>
 
+<style>
+  .form-control:focus {
+      border-color: #eab32e !important;
+      box-shadow: 0 0 0 .2rem rgba(234,179,46,0.25) !important;
+      outline: none;
+  }
+
+  .form-control:focus-visible {
+      outline: 2px solid rgba(234,179,46,0.35);
+      outline-offset: 2px;
+  }
+</style>
+
 <body>
 
 <div class="container-fluid">
@@ -84,7 +97,7 @@ try {
       <!-- METRICS -->
       <div class="row mb-4">
           <div class="col-sm-6 col-md-3 mb-3">
-              <div class="card text-center shadow-sm">
+              <div style="background-color: rgba(234,179,46,0.12);" class="card text-left shadow-sm">
                   <div class="card-body">
                       <h6>Total Exams</h6>
                       <h3><?= (int)$totalExams ?></h3>
@@ -93,7 +106,7 @@ try {
           </div>
 
           <div class="col-sm-6 col-md-3 mb-3">
-              <div class="card text-center shadow-sm">
+              <div style="background-color: rgba(234,179,46,0.12);" class="card text-left shadow-sm">
                   <div class="card-body">
                       <h6>Active Exams</h6>
                       <h3><?= (int)$activeExams ?></h3>
@@ -102,7 +115,7 @@ try {
           </div>
 
           <div class="col-sm-6 col-md-3 mb-3">
-              <div class="card text-center shadow-sm">
+              <div style="background-color: rgba(234,179,46,0.12);" class="card text-left shadow-sm">
                   <div class="card-body">
                       <h6>Total Students</h6>
                       <h3><?= (int)$totalStudents ?></h3>
@@ -111,7 +124,7 @@ try {
           </div>
 
           <div class="col-sm-6 col-md-3 mb-3">
-              <div class="card text-center shadow-sm">
+              <div style="background-color: rgba(234,179,46,0.12);" class="card text-left shadow-sm">
                   <div class="card-body">
                       <h6>Exam Attempts</h6>
                       <h3><?= (int)$totalAttempts ?></h3>
@@ -184,60 +197,78 @@ try {
 
                                 <td><?= htmlspecialchars($exam['created_at'] ?? '') ?></td>
 
-                                <td class="text-nowrap">
-                                    <!-- View exam details -->
-                                    <a href="exams_view.php?id=<?= (int)$exam['id'] ?>"
-                                        class="btn btn-sm btn-outline-primary"
-                                        role="button"
-                                        data-bs-toggle="tooltip"
-                                        title="View details"
-                                        aria-label="View exam details">
-                                        <i class="bi bi-eye" aria-hidden="true"></i>
-                                    </a>
+                               <td class="text-nowrap">
+                                <div class="dropdown">
+                                  <button
+                                    class="btn btn-sm btn-light border rounded-circle"
+                                    type="button"
+                                    id="examActionsBtn<?= (int)$exam['id'] ?>"
+                                    data-bs-toggle="dropdown"
+                                    aria-expanded="false"
+                                    aria-haspopup="true"
+                                    aria-controls="examActionsMenu<?= (int)$exam['id'] ?>"
+                                    title="Actions"
+                                  >
+                                    <span class="visually-hidden">Actions</span>
+                                    <i class="bi bi-three-dots-vertical" aria-hidden="true"></i>
+                                  </button>
+
+                                  <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="examActionsBtn<?= (int)$exam['id'] ?>" id="examActionsMenu<?= (int)$exam['id'] ?>" role="menu">
+                                    <!-- View -->
+                                    <li role="presentation">
+                                      <a role="menuitem" class="dropdown-item" href="exams_view.php?id=<?= (int)$exam['id'] ?>">
+                                        <i class="bi bi-eye me-2" aria-hidden="true"></i> View details
+                                      </a>
+                                    </li>
 
                                     <!-- Results -->
-                                    <a href="exam_results.php?exam_id=<?= (int)$exam['id'] ?>"
-                                        class="btn btn-sm btn-info"
-                                        role="button"
-                                        data-bs-toggle="tooltip"
-                                        title="View results"
-                                        aria-label="View exam results">
-                                        <i class="bi bi-clipboard-check" aria-hidden="true"></i>
-                                    </a>
+                                    <li role="presentation">
+                                      <a role="menuitem" class="dropdown-item" href="exam_results.php?exam_id=<?= (int)$exam['id'] ?>">
+                                        <i class="bi bi-clipboard-check me-2" aria-hidden="true"></i> View results
+                                      </a>
+                                    </li>
 
-                                    <!-- Delete (keeps your existing protection) -->
-                                    <?php if ($exam['status'] !== 'in_progress'): ?>
-                                        <a href="exam_delete.php?id=<?= (int)$exam['id'] ?>"
-                                        class="btn btn-sm btn-danger"
-                                        onclick="return confirm('Delete this exam permanently?')"
-                                        data-bs-toggle="tooltip"
-                                        title="Delete"
-                                        aria-label="Delete exam">
-                                        <i class="bi bi-trash" aria-hidden="true"></i>
+                                    <!-- Edit (opens modal) -->
+                                    <li role="presentation">
+                                      <button
+                                        type="button"
+                                        class="dropdown-item edit-exam-btn"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#editExamModal"
+                                        data-id="<?= (int)$exam['id'] ?>"
+                                        data-program="<?= (int)($exam['program_id'] ?? 0) ?>"
+                                        data-course="<?= (int)($exam['course_id'] ?? 0) ?>"
+                                        data-duration="<?= (int)($exam['duration'] ?? 0) ?>"
+                                        data-total="<?= (int)($exam['total_marks'] ?? 0) ?>"
+                                        data-questions="<?= (int)($exam['num_questions'] ?? 0) ?>"
+                                        data-status="<?= htmlspecialchars($exam['status'] ?? 'draft', ENT_QUOTES) ?>"
+                                        role="menuitem"
+                                      >
+                                        <i class="bi bi-pencil me-2" aria-hidden="true"></i> Edit
+                                      </button>
+                                    </li>
+                                    <?php if (($exam['status'] ?? '') !== 'in_progress'): ?>
+                                      <li role="presentation">
+                                        <a
+                                          role="menuitem"
+                                          class="dropdown-item text-danger"
+                                          href="exam_delete.php?id=<?= (int)$exam['id'] ?>"
+                                          onclick="return confirm('Delete this exam permanently?')"
+                                        >
+                                          <i class="bi bi-trash me-2" aria-hidden="true"></i> Delete
                                         </a>
+                                      </li>
                                     <?php else: ?>
-                                        <button class="btn btn-sm btn-secondary" disabled
-                                                title="Cannot delete an exam in progress"
-                                                aria-label="Cannot delete an exam in progress"
-                                                aria-disabled="true">
-                                        <i class="bi bi-trash" aria-hidden="true"></i>
+                                      <li role="presentation">
+                                        <button type="button" class="dropdown-item" disabled aria-disabled="true" title="Cannot delete an exam in progress">
+                                          <i class="bi bi-trash me-2" aria-hidden="true"></i> Delete
                                         </button>
+                                      </li>
                                     <?php endif; ?>
+                                  </ul>
+                                </div>
+                              </td>
 
-                                    <!-- Edit: embed minimal data attributes needed for edit modal -->
-                                    <button
-                                        class="btn btn-sm btn-warning edit-exam-btn"
-                                        data-id="<?= $exam['id'] ?>"
-                                        data-program="<?= $exam['program_id'] ?>"
-                                        data-course="<?= $exam['course_id'] ?>"
-                                        data-duration="<?= $exam['duration'] ?>"
-                                        data-total="<?= $exam['total_marks'] ?>"
-                                        data-questions="<?= $exam['num_questions'] ?>"
-                                        data-status="<?= $exam['status'] ?>"
-                                    >
-                                        Edit
-                                    </button>
-                                </td>
                           </tr>
                       <?php endforeach; ?>
                   <?php endif; ?>
@@ -264,8 +295,8 @@ try {
         <div class="modal-body">
 
           <div class="mb-3">
-            <label for="program_id" class="form-label">Program</label>
-            <select id="program_id" name="program_id" class="form-select" required>
+            <label for="program_id" class="form-label ">Program</label>
+            <select id="program_id" name="program_id" class="form-select form-control" required>
               <option value="">Select program</option>
               <?php foreach ($programs as $p): ?>
                 <option value="<?= (int)$p['id'] ?>"><?= htmlspecialchars($p['name']) ?></option>
@@ -273,11 +304,9 @@ try {
             </select>
             <div class="invalid-feedback">Please select a program for this exam.</div>
           </div>
-
-          <!-- COURSE: will be populated when a program is selected -->
           <div class="mb-3">
             <label for="course_id" class="form-label">Course</label>
-            <select id="course_id" name="course_id" class="form-select" required disabled>
+            <select id="course_id" name="course_id" class="form-select form-control" required disabled>
               <option value="">Select a program first</option>
             </select>
             <div class="invalid-feedback">Please select a course for this exam.</div>
@@ -292,9 +321,9 @@ try {
 
             <div class="col-md-6 mb-3">
               <label for="exam_type" class="form-label">Exam type</label>
-              <select id="exam_type" name="exam_type" class="form-select" required>
-                <option value="standard" selected>Standard MCQ (recall & application)</option>
-                <option value="clinical">Clinical / Case-heavy</option>
+              <select id="exam_type" name="exam_type" class="form-select form-control" required>
+                <option value="standard" selected>Standard MCQ</option>
+                <option value="clinical">Heavy</option>
               </select>
               <div class="invalid-feedback">Please select an exam type.</div>
             </div>
@@ -316,13 +345,7 @@ try {
 
           <!-- Suggested time range UI -->
           <div id="durationSuggestion" class="mb-3" style="display:none;">
-            <small class="text-muted">Suggested duration: <strong id="suggestedRangeText">—</strong></small>
-            <div class="mt-2">
-              <button type="button" id="applyMin" class="btn btn-sm btn-outline-primary me-1">Use Min</button>
-              <button type="button" id="applyMedian" class="btn btn-sm btn-outline-secondary me-1">Use Median</button>
-              <button type="button" id="applyMax" class="btn btn-sm btn-outline-success">Use Max</button>
-              <small class="d-block mt-2 text-muted">You may still edit the duration manually.</small>
-            </div>
+            <small class="text-muted"><strong id="suggestedRangeText">—</strong></small>
           </div>
 
           <div class="mb-3">
@@ -339,7 +362,7 @@ try {
 
         <div class="modal-footer">
           <button type="button" class="btn btn-danger" data-bs-dismiss="modal">Cancel</button>
-          <button type="submit" class="btn btn-primary">Create Exam</button>
+          <button type="submit" class="btn btn-success">Create Exam</button>
         </div>
       </form>
     </div>
@@ -482,27 +505,7 @@ try {
 
     suggestedText.textContent = `${range.min} – ${range.max} minutes (median ${median} min)`;
     suggestedContainer.style.display = 'block';
-
-    // set data attributes for apply buttons
-    applyMinBtn.dataset.value = range.min;
-    applyMedianBtn.dataset.value = median;
-    applyMaxBtn.dataset.value = range.max;
   }
-
-  // apply handlers
-  applyMinBtn.addEventListener('click', () => {
-    durationEl.value = clampToInt(applyMinBtn.dataset.value);
-    durationEl.focus();
-  });
-  applyMedianBtn.addEventListener('click', () => {
-    durationEl.value = clampToInt(applyMedianBtn.dataset.value);
-    durationEl.focus();
-  });
-  applyMaxBtn.addEventListener('click', () => {
-    durationEl.value = clampToInt(applyMaxBtn.dataset.value);
-    durationEl.focus();
-  });
-
   // update live as admin edits
   numQEl.addEventListener('input', updateSuggestionDisplay);
   examTypeEl.addEventListener('change', updateSuggestionDisplay);
@@ -510,10 +513,8 @@ try {
   // initialize on modal open (use Bootstrap modal events)
   const createExamModalEl = document.getElementById('createExamModal');
   createExamModalEl.addEventListener('shown.bs.modal', function () {
-    // pre-fill duration if empty by applying median suggestion
     updateSuggestionDisplay();
     if (!durationEl.value) {
-      // apply median suggestion if available
       const median = applyMedianBtn.dataset.value;
       if (median) durationEl.value = clampToInt(median);
     }

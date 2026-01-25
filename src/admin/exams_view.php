@@ -247,7 +247,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_exam'])) {
         <?php unset($_SESSION['flash']); ?>
     <?php endif; ?>
 
-    <a href="dashboard.php" class="btn btn-secondary mb-3">← Back to Exams</a>
+    <a href="dashboard.php" class="btn btn-secondary mb-3">← Back</a>
 
     <div class="card shadow-sm">
         <div class="card-body">
