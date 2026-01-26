@@ -9,12 +9,8 @@ if ($exam_id <= 0) {
 }
 
 // ==== HANDLE ADD QUESTION SUBMIT (modal posts here) ====
-// ==== HANDLE ADD QUESTION SUBMIT (modal posts here) ====
 $errors = [];
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_question'])) {
-    // debug: log inbound POST (remove or reduce in production)
-    error_log('add_question POST: ' . print_r($_POST, true));
-
     try {
         // Get and validate incoming values
         $post_exam_id = (int)($_POST['exam_id'] ?? 0);
@@ -47,20 +43,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_question'])) {
             throw new Exception("This question ({$marks}) would exceed the exam total. Remaining marks: {$remaining}.");
         }
 
-        // --- Normalize posted "correct" whether scalar or array ---
-        // For single choice the client will POST correct => '2'
-        // For multiple choice the client will POST correct => ['1','3']
-        $rawCorrect = $_POST['correct'] ?? null;
-        if ($rawCorrect === null) {
-            // keep as-is; some types will use correct_tf or correct_answer
-            $correct = [];
-        } elseif (is_array($rawCorrect)) {
-            $correct = array_map('strval', $rawCorrect);
-        } else {
-            // scalar
-            $correct = [strval($rawCorrect)];
-        }
-
         // Validate options / correct answers depending on type (server-side)
         if (in_array($type, ['single_choice', 'multiple_choice'], true)) {
             $options = $_POST['options'] ?? [];
@@ -71,13 +53,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_question'])) {
                 if ($t !== '') $cleanOptions[] = $t;
             }
             if (count($cleanOptions) < 2) throw new Exception('At least two non-empty options are required.');
-
-            if ($type === 'single_choice') {
-                if (count($correct) !== 1) {
-                    throw new Exception('Single choice requires exactly one correct option.');
-                }
-            } else { // multiple_choice
-                if (count($correct) < 1) throw new Exception('Select at least one correct option for multiple choice.');
+            // correct[] expected (checkbox hidden trick ensures presence)
+            $correct = $_POST['correct'] ?? [];
+            if (!is_array($correct)) $correct = [$correct];
+            if ($type === 'single_choice' && count($correct) !== 1) {
+                throw new Exception('Single choice requires exactly one correct option.');
+            }
+            if ($type === 'multiple_choice' && count($correct) < 1) {
+                throw new Exception('Select at least one correct option for multiple choice.');
             }
         }
 
@@ -103,20 +86,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_question'])) {
         // Insert options according to type into `options` table
         if (in_array($type, ['single_choice', 'multiple_choice'], true)) {
             $optionsAll = $_POST['options'] ?? [];
-            // iterate original options order but skip empties
-            $correctStr = $correct; // already string values
+            // we will iterate original options order but skip empties
             foreach ($optionsAll as $idx => $optText) {
                 $t = trim((string)$optText);
                 if ($t === '') continue;
-                $is_correct = in_array((string)$idx, $correctStr, true) ? 1 : 0;
+                // is_correct: check if index was included in correct[]
+                $is_correct = 0;
+                $correctRaw = $_POST['correct'] ?? [];
+                // normalize to strings
+                $correctStr = array_map('strval', (array)$correctRaw);
+                if (in_array((string)$idx, $correctStr, true)) $is_correct = 1;
 
                 $insOpt = $pdo->prepare("INSERT INTO options (question_id, option_text, is_correct) VALUES (?, ?, ?)");
                 $insOpt->execute([$question_id, $t, $is_correct]);
             }
         } elseif ($type === 'true_false') {
-            $tf = $_POST['correct_tf'] ?? '';
             foreach (['True', 'False'] as $val) {
-                $is_correct = ($tf === $val) ? 1 : 0;
+                $is_correct = ($_POST['correct_tf'] === $val) ? 1 : 0;
                 $insOpt = $pdo->prepare("INSERT INTO options (question_id, option_text, is_correct) VALUES (?, ?, ?)");
                 $insOpt->execute([$question_id, $val, $is_correct]);
             }
@@ -135,10 +121,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_question'])) {
     } catch (Exception $e) {
         if ($pdo->inTransaction()) $pdo->rollBack();
         $errors[] = $e->getMessage();
-        // page will re-render and your modal open script will show errors
+        // keep page load and re-open modal with errors
     }
 }
-
 
 // ==== END POST HANDLER ====
 
@@ -823,31 +808,40 @@ function toggleFields() {
     trueFalseBox.style.display = type === 'true_false' ? 'block' : 'none';
     answerBox.style.display = ['short_answer','fill_blank'].includes(type) ? 'block' : 'none';
 
-    // rebuild option-row correct control based on type
+    // adjust correct input types inside optionsList
     const optionRows = document.querySelectorAll('#optionsList .option-row');
     optionRows.forEach((row, idx) => {
         const wrap = row.querySelector('.correct-wrap');
-        // preserve whether this option was previously marked correct
-        const prevChecked = !!row.querySelector('input[data-was-checked="1"]') || !!row.querySelector('input[name="correct[]"][value="' + idx + '"]')?.checked;
-
         wrap.innerHTML = '';
         if (type === 'single_choice') {
-            // radio (scalar) => name="correct"
             const r = document.createElement('input');
             r.type = 'radio';
-            r.name = 'correct';
+            r.name = 'correct_single';
             r.value = idx;
             r.className = 'form-check-input';
-            if (prevChecked) r.checked = true;
+            // hidden checkbox to preserve server friendly correct[] array
+            const hidden = document.createElement('input');
+            hidden.type = 'checkbox';
+            hidden.name = 'correct[]';
+            hidden.value = idx;
+            hidden.style.display = 'none';
+            r.addEventListener('change', function() {
+                document.querySelectorAll('input[name="correct[]"]').forEach(cb => cb.checked = false);
+                if (r.checked) hidden.checked = true;
+            });
+            if (document.querySelector('input[name="correct[]"][value="'+idx+'"]')?.checked) {
+                r.checked = true;
+                hidden.checked = true;
+            }
             wrap.appendChild(r);
+            wrap.appendChild(hidden);
         } else if (type === 'multiple_choice') {
-            // checkbox array => name="correct[]"
             const cb = document.createElement('input');
             cb.type = 'checkbox';
             cb.name = 'correct[]';
             cb.value = idx;
             cb.className = 'form-check-input';
-            if (prevChecked) cb.checked = true;
+            if (document.querySelector('input[name="correct[]"][value="'+idx+'"]')?.checked) cb.checked = true;
             wrap.appendChild(cb);
         } else {
             wrap.innerHTML = '';
@@ -855,6 +849,7 @@ function toggleFields() {
     });
 }
 
+/* Add / remove option rows */
 function addOption() {
     const list = document.getElementById('optionsList');
     const idx = list.querySelectorAll('.option-row').length;
@@ -862,32 +857,21 @@ function addOption() {
     div.className = 'input-group mb-2 option-row';
     div.innerHTML = `
         <input type="text" name="options[]" class="form-control" placeholder="Option text">
-        <span class="input-group-text correct-wrap"></span>
+        <span class="input-group-text correct-wrap">
+            <input type="checkbox" name="correct[]" value="${idx}">
+        </span>
     `;
     list.appendChild(div);
-    toggleFields(); // make sure correct control is created according to current type
+    toggleFields();
 }
 
 function removeOption() {
     const list = document.getElementById('optionsList');
     const rows = list.querySelectorAll('.option-row');
-    if (rows.length <= 2) return; // keep at least two
+    if (rows.length <= 2) return;
     rows[rows.length - 1].remove();
-    // re-index values for correctness (so indices match order)
-    const reRows = list.querySelectorAll('.option-row');
-    reRows.forEach((row, newIdx) => {
-        const inp = row.querySelector('input[name="options[]"]');
-        // fix any correct[] values if present
-        const control = row.querySelector('.correct-wrap input');
-        if (control) control.value = newIdx;
-    });
     toggleFields();
 }
-
-// ensure initial state when modal opens
-document.addEventListener('DOMContentLoaded', function() {
-    toggleFields();
-});
 
 /* Client-side form validation and small UX */
 (function () {
