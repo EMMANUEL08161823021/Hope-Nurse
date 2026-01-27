@@ -98,8 +98,7 @@ if ($programId === null) {
         <table class="table table-bordered">
             <thead>
                 <tr>
-                    <th>Course</th>
-                    <th>Description</th>
+                    <th>Course Title</th>
                     <th>Duration (mins)</th>
                     <th>Total Marks</th>
                     <th>Action</th>
@@ -111,22 +110,12 @@ if ($programId === null) {
                     <td>
                         <?= htmlspecialchars($exam['course_title'] ?? 'Exam #' . (int)$exam['exam_id']) ?>
                     </td>
-                    <td>
-                        <?php
-                        $desc = $exam['course_description'] ?? '';
-                        if ($desc === '') {
-                            echo '<span class="text-muted">No description</span>';
-                        } else {
-                            echo htmlspecialchars(mb_strimwidth($desc, 0, 200, '…'));
-                        }
-                        ?>
-                    </td>
                     <td><?= (int)($exam['duration'] ?? 0) ?></td>
                     <td><?= (int)($exam['total_marks'] ?? 0) ?></td>
                     <td>
                         <?php if (($exam['status'] ?? '') === 'in_progress'): ?>
                             <a href="instructions.php?exam_id=<?= (int)$exam['exam_id'] ?>"
-                               class="btn btn-sm btn-primary">
+                               class="btn btn-sm btn-success">
                                 Start Exam
                             </a>
                         <?php else: ?>

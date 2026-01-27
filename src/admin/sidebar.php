@@ -1,5 +1,4 @@
 <?php
-// place near top of file (before output). This helper determines the current script name.
 $currentScript = basename($_SERVER['SCRIPT_NAME'] ?? '');
 function nav_link_html(string $href, string $label, string $currentScript): string {
     $file = basename($href);
@@ -10,7 +9,6 @@ function nav_link_html(string $href, string $label, string $currentScript): stri
 }
 ?>
 <style>
-/* Sidebar link base */
 .nav-pills .nav-link {
     color: #ffffff;    
     padding: .5rem .75rem;
@@ -20,7 +18,7 @@ function nav_link_html(string $href, string $label, string $currentScript): stri
 .nav-pills .nav-link.active,
 .nav-pills .show > .nav-link {
     background-color: #eab32e;
-    color: #000 !important;      /* black text for contrast on gold */
+    color: #000 !important;   
     border-color: #d79c1f;
 }
 
@@ -46,11 +44,9 @@ function nav_link_html(string $href, string $label, string $currentScript): stri
 
     <ul class="nav nav-pills flex-column mb-auto">
         <li class="nav-item">
-            <!-- Dashboard -->
             <?php echo nav_link_html('dashboard.php', 'Dashboard', $currentScript); ?>
         </li>
         <li class="nav-item">
-            <!-- Manage Students -->
             <?php echo nav_link_html('students.php', 'Manage Students', $currentScript); ?>
         </li>
     </ul>

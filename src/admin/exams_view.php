@@ -8,15 +8,12 @@ if ($exam_id <= 0) {
     die('Invalid exam id');
 }
 
-// ==== HANDLE ADD QUESTION SUBMIT (modal posts here) ====
-// ==== HANDLE ADD QUESTION SUBMIT (modal posts here) ====
+
 $errors = [];
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_question'])) {
-    // debug: log inbound POST (remove or reduce in production)
     error_log('add_question POST: ' . print_r($_POST, true));
 
     try {
-        // Get and validate incoming values
         $post_exam_id = (int)($_POST['exam_id'] ?? 0);
         $question_text = trim($_POST['question_text'] ?? '');
         $type = $_POST['question_type'] ?? '';
@@ -26,7 +23,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_question'])) {
         if ($question_text === '') throw new Exception('Question text is required.');
         if ($marks <= 0) throw new Exception('Marks must be greater than zero.');
 
-        // Load exam and ensure it's draft and has total_marks configured
         $chkExam = $pdo->prepare("SELECT id, total_marks, status FROM exams WHERE id = ? LIMIT 1");
         $chkExam->execute([$post_exam_id]);
         $examCheck = $chkExam->fetch(PDO::FETCH_ASSOC);
@@ -35,7 +31,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_question'])) {
         $examTotalMarks = (int)($examCheck['total_marks'] ?? 0);
         if ($examTotalMarks <= 0) throw new Exception('Exam total marks is not configured. Set total marks before adding questions.');
 
-        // Compute existing marks sum
         $sumStmt = $pdo->prepare("SELECT COALESCE(SUM(marks),0) FROM questions WHERE exam_id = ?");
         $sumStmt->execute([$post_exam_id]);
         $existingMarks = (int)$sumStmt->fetchColumn();
@@ -47,24 +42,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_question'])) {
             throw new Exception("This question ({$marks}) would exceed the exam total. Remaining marks: {$remaining}.");
         }
 
-        // --- Normalize posted "correct" whether scalar or array ---
-        // For single choice the client will POST correct => '2'
-        // For multiple choice the client will POST correct => ['1','3']
         $rawCorrect = $_POST['correct'] ?? null;
         if ($rawCorrect === null) {
-            // keep as-is; some types will use correct_tf or correct_answer
             $correct = [];
         } elseif (is_array($rawCorrect)) {
             $correct = array_map('strval', $rawCorrect);
         } else {
-            // scalar
             $correct = [strval($rawCorrect)];
         }
 
-        // Validate options / correct answers depending on type (server-side)
         if (in_array($type, ['single_choice', 'multiple_choice'], true)) {
             $options = $_POST['options'] ?? [];
-            // trim and keep non-empty options
             $cleanOptions = [];
             foreach ($options as $opt) {
                 $t = trim((string)$opt);
@@ -76,7 +64,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_question'])) {
                 if (count($correct) !== 1) {
                     throw new Exception('Single choice requires exactly one correct option.');
                 }
-            } else { // multiple_choice
+            } else { 
                 if (count($correct) < 1) throw new Exception('Select at least one correct option for multiple choice.');
             }
         }
@@ -93,18 +81,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_question'])) {
             if ($correct_answer === '') throw new Exception('Correct answer is required for text questions.');
         }
 
-        // Passed all checks -> insert question + options in transaction
         $pdo->beginTransaction();
 
         $insQ = $pdo->prepare("INSERT INTO questions (exam_id, question_text, question_type, marks) VALUES (?, ?, ?, ?)");
         $insQ->execute([$post_exam_id, $question_text, $type, $marks]);
         $question_id = (int)$pdo->lastInsertId();
 
-        // Insert options according to type into `options` table
         if (in_array($type, ['single_choice', 'multiple_choice'], true)) {
             $optionsAll = $_POST['options'] ?? [];
-            // iterate original options order but skip empties
-            $correctStr = $correct; // already string values
+            $correctStr = $correct; 
             foreach ($optionsAll as $idx => $optText) {
                 $t = trim((string)$optText);
                 if ($t === '') continue;
@@ -127,7 +112,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_question'])) {
 
         $pdo->commit();
 
-        // success -> set flash and PRG redirect to avoid resubmits
         $_SESSION['flash'] = 'Question added successfully.';
         header('Location: exams_view.php?id=' . $post_exam_id);
         exit;
@@ -135,15 +119,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_question'])) {
     } catch (Exception $e) {
         if ($pdo->inTransaction()) $pdo->rollBack();
         $errors[] = $e->getMessage();
-        // page will re-render and your modal open script will show errors
     }
 }
 
 
-// ==== END POST HANDLER ====
-
-
-// Fetch exam + admin name + course info (defensive joins)
 $stmt = $pdo->prepare("\n    SELECT\n        e.*,\n        u.full_name AS admin_name,\n        c.title AS course_title,\n        c.description AS course_description,\n        p.name AS program_name\n    FROM exams e\n    LEFT JOIN users u ON e.created_by = u.id\n    LEFT JOIN courses c ON e.course_id = c.id\n    LEFT JOIN programs p ON e.program_id = p.id\n    WHERE e.id = ?\n    LIMIT 1\n");
 $stmt->execute([$exam_id]);
 $exam = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -152,12 +131,10 @@ if (!$exam) {
     die("Exam not found");
 }
 
-// Questions
 $qStmt = $pdo->prepare("SELECT * FROM questions WHERE exam_id = ? ORDER BY id ASC");
 $qStmt->execute([$exam_id]);
 $questions = $qStmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Counts: use single count execution (avoid double fetchColumn misuse)
 $qCountStmt = $pdo->prepare("SELECT COUNT(*) FROM questions WHERE exam_id = ?");
 $qCountStmt->execute([$exam_id]);
 $createdQuestions = (int)$qCountStmt->fetchColumn();
@@ -170,7 +147,6 @@ $attemptCount = (int)$attemptsStmt->fetchColumn();
 
 
 
-// ==== HANDLE EDIT EXAM ====
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_exam'])) {
     try {
         $exam_id = (int)$_POST['exam_id'];
@@ -183,7 +159,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_exam'])) {
         if ($duration <= 0) throw new Exception('Duration must be greater than zero.');
         if ($total_marks <= 0) throw new Exception('Total marks must be greater than zero.');
 
-        // Check exam status
         $stmt = $pdo->prepare("SELECT status FROM exams WHERE id = ?");
         $stmt->execute([$exam_id]);
         $status = $stmt->fetchColumn();
@@ -192,7 +167,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_exam'])) {
             throw new Exception('Only draft exams can be edited.');
         }
 
-        // Check question marks sum
         $sumStmt = $pdo->prepare("\n            SELECT COALESCE(SUM(marks),0)\n            FROM questions\n            WHERE exam_id = ?\n        ");
         $sumStmt->execute([$exam_id]);
         $questionMarks = (int)$sumStmt->fetchColumn();
@@ -204,7 +178,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_exam'])) {
             exit;
         }
 
-        // Update exam
         $update = $pdo->prepare("\n            UPDATE exams\n            SET title = ?, description = ?, duration = ?, total_marks = ?\n            WHERE id = ?\n        ");
         $update->execute([
             $title,
@@ -227,10 +200,8 @@ $optionsByQuestion = [];
 
 $questionIds = array_map(function($q){ return (int)$q['id']; }, $questions ?: []);
 if (!empty($questionIds)) {
-    // Build placeholders for IN(...)
     $placeholders = implode(',', array_fill(0, count($questionIds), '?'));
 
-    // IMPORTANT: include the option id so client-side edit modal can reference existing rows and update instead of inserting duplicates
     $optSql = "SELECT id, question_id, option_text, is_correct FROM options WHERE question_id IN ($placeholders) ORDER BY id ASC";
     $optStmt = $pdo->prepare($optSql);
     $optStmt->execute($questionIds);
@@ -456,7 +427,7 @@ if (!empty($questionIds)) {
 
 </div>
 
-<!-- Add Question Modal (posts to this same file) -->
+<!-- Add Question Modal -->
 <div class="modal fade" id="addQuestionModal" tabindex="-1" aria-labelledby="addQuestionModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-lg modal-dialog-centered">
     <div class="modal-content">
@@ -565,7 +536,6 @@ if (!empty($questionIds)) {
     <div class="modal-content">
       <form id="editQuestionForm" method="POST" action="edit_question.php" class="needs-validation" novalidate>
         <input type="hidden" name="question_id" id="eq_question_id" value="">
-        <!-- removed options ids -->
         <div id="eq_removed_ids_container"></div>
 
         <div class="modal-header">
@@ -605,9 +575,7 @@ if (!empty($questionIds)) {
             </div>
           </div>
 
-          <!-- Options container -->
           <div id="eq_options_container" class="mb-2">
-            <!-- dynamic rows for existing & new options will be injected here -->
           </div>
 
           <div class="small text-muted">
@@ -625,20 +593,15 @@ if (!empty($questionIds)) {
 </div>
 
 
-<!-- Bootstrap JS -->
 <script src="../../public/assets/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 (function () {
   'use strict';
-
-  // Helpers to create DOM nodes for options
   function createExistingOptionRow(opt) {
-    // opt: { id?, question_id, option_text, is_correct }
     const wrapper = document.createElement('div');
     wrapper.className = 'eq-option-row mb-2 d-flex gap-2 align-items-start';
     wrapper.dataset.optId = opt.id ? String(opt.id) : '';
 
-    // text input
     const text = document.createElement('input');
     text.type = 'text';
     text.name = opt.id ? `options_existing[${opt.id}][text]` : `options_new[][text]`;
@@ -647,7 +610,6 @@ if (!empty($questionIds)) {
     text.value = opt.option_text ?? '';
     text.required = true;
 
-    // correct checkbox
     const chkWrapper = document.createElement('div');
     chkWrapper.className = 'form-check ms-2';
     const chk = document.createElement('input');
@@ -664,7 +626,6 @@ if (!empty($questionIds)) {
     chkWrapper.appendChild(chk);
     chkWrapper.appendChild(chkLabel);
 
-    // remove button
     const rmBtn = document.createElement('button');
     rmBtn.type = 'button';
     rmBtn.className = 'btn btn-sm btn-outline-danger';
@@ -672,7 +633,6 @@ if (!empty($questionIds)) {
     rmBtn.title = 'Remove option';
 
     rmBtn.addEventListener('click', function () {
-      // If this is an existing option (has id), add hidden input to removed list
       const existingId = wrapper.dataset.optId;
       if (existingId) {
         const removedContainer = document.getElementById('eq_removed_ids_container');
@@ -685,7 +645,6 @@ if (!empty($questionIds)) {
       wrapper.remove();
     });
 
-    // assemble
     wrapper.appendChild(text);
     wrapper.appendChild(chkWrapper);
     wrapper.appendChild(rmBtn);
@@ -693,16 +652,13 @@ if (!empty($questionIds)) {
     return wrapper;
   }
 
-  // Add new option row
   document.getElementById('eq_add_option_btn').addEventListener('click', function () {
     const container = document.getElementById('eq_options_container');
     const row = createExistingOptionRow({ option_text: '', is_correct: 0 });
     container.appendChild(row);
-    // focus new input
     row.querySelector('input[type="text"]').focus();
   });
 
-  // When edit button clicked: populate modal
   document.querySelectorAll('.edit-question-btn').forEach(btn => {
     btn.addEventListener('click', function () {
       const qid = this.dataset.qid || '';
@@ -716,22 +672,18 @@ if (!empty($questionIds)) {
         opts = [];
       }
 
-      // set fields
       document.getElementById('eq_question_id').value = qid;
       document.getElementById('eq_question_text').value = qtext;
       document.getElementById('eq_question_type').value = qtype;
       document.getElementById('eq_marks').value = qmarks;
 
-      // clear removed ids container
       document.getElementById('eq_removed_ids_container').innerHTML = '';
 
-      // populate options container
       const container = document.getElementById('eq_options_container');
       container.innerHTML = '';
 
       if (Array.isArray(opts) && opts.length) {
         opts.forEach(o => {
-          // normalize expected option properties
           const norm = {
             id: o.id ?? o.option_id ?? null,
             option_text: o.option_text ?? o.option ?? '',
@@ -741,23 +693,19 @@ if (!empty($questionIds)) {
           container.appendChild(r);
         });
       } else {
-        // if no options exist, create two empty rows for choice types as starting point
         if (qtype === 'single_choice' || qtype === 'multiple_choice' || qtype === 'true_false') {
           container.appendChild(createExistingOptionRow({ option_text: '', is_correct: 0 }));
           container.appendChild(createExistingOptionRow({ option_text: '', is_correct: 0 }));
         } else {
-          // short answer — no options by default
         }
       }
 
-      // show/hide options UI based on type (single/multiple/true_false show, short_answer hide)
       function toggleOptionsUI(type) {
         const show = ['single_choice','multiple_choice','true_false'].includes(type);
         document.getElementById('eq_add_option_btn').style.display = show ? 'inline-block' : 'none';
       }
       toggleOptionsUI(qtype);
 
-      // change handler for type select to toggle UI (and ensure at least one option row)
       const typeSelect = document.getElementById('eq_question_type');
       typeSelect.onchange = function () {
         toggleOptionsUI(this.value);
@@ -771,7 +719,6 @@ if (!empty($questionIds)) {
     });
   });
 
-  // Client side validation before submit: require at least one option for choice types
   const form = document.getElementById('editQuestionForm');
   form.addEventListener('submit', function (ev) {
     const qtext = document.getElementById('eq_question_text').value.trim();
@@ -788,7 +735,6 @@ if (!empty($questionIds)) {
         valid = false;
         alert('Please add at least one option for this question type.');
       } else {
-        // ensure no empty option text
         optRows.forEach(r => {
           const txt = r.querySelector('input[type="text"]');
           if (txt && txt.value.trim() === '') valid = false;
@@ -812,7 +758,6 @@ if (!empty($questionIds)) {
 </script>
 
 <script>
-/* Toggle fields and ensure correct input types are appropriate */
 function toggleFields() {
     const type = document.getElementById('question_type').value;
     const optionsBox = document.getElementById('optionsBox');
@@ -865,7 +810,7 @@ function addOption() {
         <span class="input-group-text correct-wrap"></span>
     `;
     list.appendChild(div);
-    toggleFields(); // make sure correct control is created according to current type
+    toggleFields(); 
 }
 
 function removeOption() {

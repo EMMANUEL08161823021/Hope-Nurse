@@ -1,0 +1,123 @@
+Entities and main columns (PK, FKs, notes):
+
+users
+
+id INT PK AUTO_INCREMENT
+
+full_name VARCHAR(191)
+
+email VARCHAR(191) UNIQUE
+
+password VARCHAR(255) — bcrypt hashed
+
+role ENUM('admin','student') DEFAULT 'student'
+
+status ENUM('active','blocked') DEFAULT 'active'
+
+program VARCHAR(100) NULL — optional user program name
+
+country VARCHAR(100) NULL
+
+created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+
+programs
+
+id INT PK AUTO_INCREMENT
+
+name VARCHAR(191) UNIQUE
+
+description TEXT NULL
+
+courses
+
+id INT PK AUTO_INCREMENT
+
+program_id INT FK -> programs(id)
+
+title VARCHAR(255)
+
+description TEXT NULL
+
+is_active TINYINT(1) DEFAULT 1
+
+exams
+
+id INT PK AUTO_INCREMENT
+
+created_by INT FK -> users(id) (admin)
+
+program_id INT FK -> programs(id) NULL
+
+course_id INT FK -> courses(id) NULL
+
+duration INT (minutes) NOT NULL
+
+total_marks INT NOT NULL
+
+num_questions INT NULL
+
+status ENUM('draft','in_progress','closed') DEFAULT 'draft'
+
+results_released TINYINT(1) DEFAULT 0
+
+created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+
+questions
+
+id INT PK AUTO_INCREMENT
+
+exam_id INT FK -> exams(id)
+
+question_text TEXT
+
+question_type ENUM('single_choice','multiple_choice','true_false','short_answer','fill_blank')
+
+marks INT
+
+expected_answer TEXT NULL
+
+options
+
+id INT PK AUTO_INCREMENT
+
+question_id INT FK -> questions(id)
+
+option_text TEXT
+
+is_correct TINYINT(1) DEFAULT 0
+
+attempts
+
+id INT PK AUTO_INCREMENT
+
+exam_id INT FK -> exams(id)
+
+student_id INT FK -> users(id)
+
+status ENUM('in_progress','submitted','auto_submitted','completed')
+
+started_at DATETIME
+
+submitted_at DATETIME NULL
+
+created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+
+duration_minutes INT — duration recorded at start
+
+score INT NULL
+
+answers
+
+id INT PK AUTO_INCREMENT
+
+attempt_id INT FK -> attempts(id)
+
+question_id INT FK -> questions(id)
+
+answer_text TEXT — for single/short/multi (JSON for multiple)
+
+is_correct TINYINT NULL
+
+awarded_marks DECIMAL(6,2) NULL
+
+All FK constraints use ON DELETE CASCADE where appropriate (attempts -> exam deletion requires caution; see migration comments). Referential integrity is enforced.

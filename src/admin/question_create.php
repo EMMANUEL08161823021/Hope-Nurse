@@ -4,13 +4,11 @@ requireRole('admin');
 require_once __DIR__ . '/../middleware/csrf.php';
 require_once __DIR__ . '/../config/db.php';
 
-// Need an exam_id param to add question to an exam
 $exam_id = intval($_GET['exam_id'] ?? 0);
 if (!$exam_id) {
     die('Missing exam id');
 }
 
-// optional: fetch exam to show title
 $stmt = $pdo->prepare("SELECT id, title FROM exams WHERE id = ?");
 $stmt->execute([$exam_id]);
 $exam = $stmt->fetch();
@@ -47,7 +45,6 @@ if (!$exam) die('Exam not found');
       <label class="form-label">Options</label>
 
       <div id="optionsList">
-        <!-- JS will populate option rows for choice types -->
       </div>
 
       <button type="button" id="addOptionBtn" class="btn btn-sm btn-outline-secondary mt-2">Add option</button>

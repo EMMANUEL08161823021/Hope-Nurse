@@ -315,7 +315,7 @@ try {
           <div class="row">
             <div class="col-md-6 mb-3">
               <label for="num_questions" class="form-label">Number of questions</label>
-              <input id="num_questions" name="num_questions" type="number" class="form-control" min="1" value="20" required>
+              <input id="num_questions" name="num_questions" type="number" class="form-control" min="1" value="60" required>
               <div class="invalid-feedback">Enter the number of questions (min 1).</div>
             </div>
 

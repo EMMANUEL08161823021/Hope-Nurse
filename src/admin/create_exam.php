@@ -22,7 +22,5 @@ requireRole('admin');
         </button>
     </div>
 
-
-
 </body>
 </html>

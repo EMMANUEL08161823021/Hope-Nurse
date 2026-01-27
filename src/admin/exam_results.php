@@ -1,5 +1,4 @@
 <?php
-// src/admin/exam_results.php
 require_once __DIR__ . '/../middleware/auth.php';
 requireRole('admin');
 require_once __DIR__ . '/../config/db.php';
@@ -10,7 +9,6 @@ if ($exam_id <= 0) {
     die('Invalid exam id.');
 }
 
-/* Fetch exam with course & program info (defensive joins) */
 $examStmt = $pdo->prepare("
     SELECT
         e.id,
@@ -52,7 +50,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['toggle_results'])) {
     exit;
 }
 
-/* Optional search/filter by student name or email (GET q) */
 $q = trim((string)($_GET['q'] ?? ''));
 $filterSql = '';
 $params = [$exam_id];
@@ -63,7 +60,6 @@ if ($q !== '') {
     $params[] = $like;
 }
 
-/* Fetch attempts with student info — using your exact attempt columns */
 $attemptsStmt = $pdo->prepare("
     SELECT
         a.id AS attempt_id,
@@ -85,7 +81,6 @@ $attemptsStmt->execute($params);
 $attempts = $attemptsStmt->fetchAll(PDO::FETCH_ASSOC);
 
 
-/* small date helper */
 function fmtDate($d) {
     if (empty($d)) return '—';
     $ts = strtotime($d);
@@ -176,7 +171,6 @@ function fmtDate($d) {
                 <tbody>
                     <?php foreach ($attempts as $a): ?>
                         <?php
-                            // Prefer submitted_at, then started_at, then created_at
                             $dateTaken = $a['submitted_at'] ?: $a['started_at'] ?: $a['attempt_created'];
                         ?>
                         <tr>

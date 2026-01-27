@@ -1,8 +1,6 @@
 <?php
-// store_exam.php
 session_start();
 
-// require admin role + DB (adjust paths if your project layout differs)
 require_once __DIR__ . '/../middleware/auth.php';
 requireRole('admin');
 require_once __DIR__ . '/../config/db.php';
@@ -26,7 +24,6 @@ $num_questions = post('num_questions');
 
 $errors = [];
 
-// basic server-side validation
 if (empty($program_id) || !is_numeric($program_id)) {
     $errors[] = "Please select a valid program.";
 }
@@ -48,13 +45,11 @@ if (empty($num_questions) || !is_numeric($num_questions) || (int)$num_questions 
     $errors[] = "Number of questions must be at least 1.";
 }
 
-// ensure admin is logged in and we have an id for FK
 if (empty($_SESSION['user']['id']) || !is_numeric($_SESSION['user']['id'])) {
     $errors[] = "Unable to identify the current user. Please login and try again.";
 }
 
 if (!empty($errors)) {
-    // Save friendly message and redirect back
     $_SESSION['flash'] = implode(' ', $errors);
     header('Location: index.php');
     exit;
@@ -69,28 +64,24 @@ $total_marks = (int)$total_marks;
 $created_by  = (int)$_SESSION['user']['id'];
 
 try {
-    // Verify program exists
     $stmt = $pdo->prepare("SELECT id FROM programs WHERE id = :id LIMIT 1");
     $stmt->execute([':id' => $program_id]);
     if (!$stmt->fetch(PDO::FETCH_ASSOC)) {
         throw new Exception('Selected program not found.');
     }
 
-    // Verify course exists and belongs to program
     $stmt = $pdo->prepare("SELECT id FROM courses WHERE id = :cid AND program_id = :pid LIMIT 1");
     $stmt->execute([':cid' => $course_id, ':pid' => $program_id]);
     if (!$stmt->fetch(PDO::FETCH_ASSOC)) {
         throw new Exception('Selected course not found for the chosen program.');
     }
 
-    // Verify creator user exists (defensive)
     $stmt = $pdo->prepare("SELECT id FROM users WHERE id = :id LIMIT 1");
     $stmt->execute([':id' => $created_by]);
     if (!$stmt->fetch(PDO::FETCH_ASSOC)) {
         throw new Exception('Current user not found in users table.');
     }
 
-    // Insert exam (no title/description)
     $sql = "INSERT INTO exams (
             program_id,
             course_id,
@@ -128,7 +119,6 @@ try {
     exit;
 
 } catch (Throwable $e) {
-    // Log the detailed error for debugging; show a friendly message to user
     error_log('[store_exam] Create exam failed: ' . $e->getMessage() . ' | ' . json_encode([
         'program_id' => $program_id,
         'course_id' => $course_id,
@@ -137,9 +127,6 @@ try {
         'num_questions' => $num_questions,
         'created_by' => $created_by
     ]));
-
-    // If you're actively debugging, you can temporarily uncomment the following to see the real error:
-    // die('<pre>' . htmlspecialchars($e->getMessage()) . '</pre>');
 
     $_SESSION['flash'] = 'Failed to create exam. Try again later.';
     header('Location: dashboard.php');

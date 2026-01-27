@@ -1,5 +1,4 @@
 <?php
-// src/admin/exam_delete.php
 session_start();
 require_once '../middleware/auth.php';
 requireRole('admin');
@@ -7,7 +6,6 @@ require_once '../config/db.php';
 
 $back = $_SERVER['HTTP_REFERER'] ?? 'exam.php';
 
-// Accept id from GET (anchor) or POST (form)
 $exam_id = 0;
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $exam_id = (int)($_POST['exam_id'] ?? 0);
@@ -22,7 +20,6 @@ if ($exam_id <= 0) {
 }
 
 try {
-    // Fetch exam
     $stmt = $pdo->prepare("SELECT id, status FROM exams WHERE id = ? LIMIT 1");
     $stmt->execute([$exam_id]);
     $exam = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -33,14 +30,12 @@ try {
         exit;
     }
 
-    // Do not allow deleting an active exam
     if ($exam['status'] === 'in_progress') {
         $_SESSION['flash'] = 'Cannot delete an exam that is currently in progress.';
         header('Location: ' . $back);
         exit;
     }
 
-    // Do not allow deleting if there are attempts
     $chk = $pdo->prepare("SELECT COUNT(*) FROM attempts WHERE exam_id = ?");
     $chk->execute([$exam_id]);
     $attemptCount = (int) $chk->fetchColumn();
@@ -50,10 +45,8 @@ try {
         exit;
     }
 
-    // Delete related records in a transaction
     $pdo->beginTransaction();
 
-    // Delete options for questions belonging to this exam
     $pdo->prepare("
         DELETE qo
         FROM options qo
@@ -61,10 +54,8 @@ try {
         WHERE q.exam_id = ?
     ")->execute([$exam_id]);
 
-    // Delete questions
     $pdo->prepare("DELETE FROM questions WHERE exam_id = ?")->execute([$exam_id]);
 
-    // Delete exam
     $pdo->prepare("DELETE FROM exams WHERE id = ?")->execute([$exam_id]);
 
     $pdo->commit();
