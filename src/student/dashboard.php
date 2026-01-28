@@ -191,6 +191,10 @@ if (!empty($programId)) {
     <title>Student Dashboard | Hope Nurse Exam</title>
     <link rel="stylesheet" href="../../assets/bootstrap.min.css">
     <style>
+        .body {
+            font-family: 'Raleway', sans-serif;
+        } 
+        
         /* Sidebar link base */
         .nav-pills .nav-link {
             color: #ffffff;    
@@ -215,40 +219,10 @@ if (!empty($programId)) {
 </head>
 <body>
 
-<div class="container-fluid">
+<div class="container-fluid body">
     <div class="row">
-        <!-- SIDEBAR -->
-        <nav id="adminSidebar" class="col-12 col-md-3 col-lg-2 px-0 border-end vh-100 collapse d-md-block" style="background-color: #042c2c;">
-        <div class="d-flex flex-column p-3 h-100">
-            <a href="#" class="d-flex align-items-center mb-3 mb-md-4 text-decoration-none">
-            <img src="https://www.hopenurse.com/photos/Original%20logo%20NBG.png" alt="Hope" style="height:45px; margin-right:8px;">
-            </a>
 
-            <ul class="nav nav-pills flex-column mb-auto">
-                <li class="nav-item">
-                    <a href="dashboard.php" class="nav-link">
-                    Dashboard
-                    </a>
-                </li>
-            </ul>
-
-            <hr> 
-
-            <div class="mt-auto">
-            <div class="small text-muted mb-2">Feature plans</div>
-            <ul class="list-unstyled" style="color: #eab32e;">
-                <li><a href="#" class="text-decoration-none text-white d-block py-1">Settings</a></li>
-                <li><a href="#" class="text-decoration-none text-white d-block py-1">Notifications</a></li>
-                <li><a href="#" class="text-decoration-none text-white d-block py-1">User Feedback</a></li>
-            </ul>
-
-            <div class="mt-3">
-                <a href="../auth/logout.php" class="btn btn-outline-danger btn-sm w-100">Logout</a>
-            </div>
-            </div>
-        </div>
-        </nav>
-
+        <?php require 'sidebar.php'?>
         <!-- MAIN CONTENT -->
         <main class="col-12 col-md-9 col-lg-10 p-4">
             <div class="mb-3">
@@ -260,7 +234,7 @@ if (!empty($programId)) {
                 <?php require 'exam.php' ?>
 
                 <!-- COURSES (display program courses in left/right layout) -->
-                <div class="col-md-6 mb-3">
+                <div class="col-md-12 mb-3">
                     <div class="card shadow-sm">
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-start mb-2">
@@ -329,28 +303,8 @@ if (!empty($programId)) {
                     </div>
                 </div>
 
-                <!-- RESULTS -->
-                <div class="col-md-6 mb-3">
-                    <div class="card shadow-sm">
-                        <div class="card-body">
-                            <h5 class="card-title">My Results</h5>
-                            <p class="card-text">
-                                Review completed exams and scores.
-                            </p>
-                            <a href="results.php" class="btn btn-success">
-                                My Results
-                            </a>
-                        </div>
-                    </div>
-                </div>
-
             </div>
 
-            <hr>
-
-            <!-- <a href="../auth/logout.php" class="btn btn-outline-danger">
-                Logout
-            </a> -->
         </main>
     </div>
 </div>

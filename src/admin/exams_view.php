@@ -218,7 +218,13 @@ if (!empty($questionIds)) {
 <?php require '../constants/header.php' ?>
 <title>View Exam</title>
 </head>
-<body>
+
+<style>
+    .body {
+        background: #042c2c;
+    }
+</style>
+<body class="body">
 
 <div class="container mt-4">
 

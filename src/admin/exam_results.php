@@ -91,63 +91,120 @@ function fmtDate($d) {
 <?php require __DIR__ . '/../constants/header.php'; ?>
 <title>Exam Results — <?= htmlspecialchars($exam['course_title'] ?? 'Exam') ?></title>
 </head>
-<body class="container py-4">
+
+<style>
+    .body {
+        background: #042c2c;
+    }
+</style>
+<body class="container body py-4">
 
 
-<a href="dashboard.php" class="btn btn-secondary">Back to Dashboard</a>
+<a href="dashboard.php" class="btn btn-secondary rounded">Back</a>
 
 
-<div class="card mb-4">
+<div class="card mt-4">
+    <div class="p-4" style="background-color: #042c2c; color: #fff;">
+        <h3><?= htmlspecialchars($exam['course_title'] ?? 'Untitled course') ?></h3>
+  
+        <?php if (!empty($exam['course_description'])): ?>
+            <div class="small mt-1"><?= nl2br(htmlspecialchars($exam['course_description'])) ?></div>
+        <?php endif; ?>
+    </div>
     <div class="card-body">
-        <h4 class="card-title mb-1"><?= htmlspecialchars($exam['course_title'] ?? 'Untitled Course') ?></h4>
-        <div class="text-muted mb-2">
-            <small><?= htmlspecialchars($exam['program_name'] ?? '') ?></small>
-            <?php if (!empty($exam['course_description'])): ?>
-                <div class="small mt-1"><?= nl2br(htmlspecialchars($exam['course_description'])) ?></div>
-            <?php endif; ?>
 
-            <div class="mt-2">
-                Total marks: <?= htmlspecialchars($exam['total_marks'] ?? 'N/A') ?> &nbsp; • &nbsp;
-                Status:
-                <span class="badge bg-<?= ($exam['status'] === 'in_progress') ? 'success' : (($exam['status'] === 'closed') ? 'danger' : 'secondary') ?>">
-                    <?= htmlspecialchars(ucfirst($exam['status'] ?? '')) ?>
-                </span>
-                &nbsp; • &nbsp;
-                Created by: <?= htmlspecialchars($exam['admin_name'] ?? '—') ?>
-                &nbsp; • &nbsp;
-                Created at: <?= htmlspecialchars($exam['created_at'] ?? '—') ?>
+        <div class="text-muted mb-2">
+
+            <div class="mt-3 bg-light p-3 rounded shadow-sm">
+                <div class="d-flex flex-wrap align-items-center justify-content-between text-muted small fw-medium">
+                    <!-- Total Marks -->
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-check-circle-fill text-primary"></i>
+                        <span>Total Marks:</span>
+                        <strong><?= htmlspecialchars($exam['total_marks'] ?? 'N/A') ?></strong>
+                    </div>
+
+                    <!-- Status -->
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-info-circle-fill text-secondary"></i>
+                        <span>Status:</span>
+                        <?php
+                        $status = $exam['status'] ?? '';
+                        $badgeClass = match ($status) {
+                            'in_progress' => 'bg-success',
+                            'closed'      => 'bg-danger',
+                            default       => 'bg-secondary',
+                        };
+                        ?>
+                        <span class="badge <?= $badgeClass ?> px-3 py-2 rounded-pill">
+                            <?= htmlspecialchars(ucfirst($status)) ?>
+                        </span>
+                    </div>
+
+                    <!-- Created By -->
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-person-fill text-info"></i>
+                        <span>Created By:</span>
+                        <strong><?= htmlspecialchars($exam['admin_name'] ?? '—') ?></strong>
+                    </div>
+
+                    <!-- Created At -->
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-calendar-event text-warning"></i>
+                        <span>Created At:</span>
+                        <?php
+                        $createdAt = $exam['created_at'] ?? null;
+                        $formattedDate = $createdAt ? date('d M Y, H:i', strtotime($createdAt)) : '—';
+                        ?>
+                        <strong><?= htmlspecialchars($formattedDate) ?></strong>
+                    </div>
+                </div>
             </div>
 
-            <form method="post" class="mt-3">
-                <button
-                    type="submit"
-                    name="toggle_results"
-                    class="btn btn-sm <?= $exam['results_released'] ? 'btn-danger' : 'btn-success' ?>"
-                    onclick="return confirm('Are you sure you want to <?= $exam['results_released'] ? 'hide' : 'release' ?> results?');"
-                >
-                    <?= $exam['results_released'] ? 'Hide Results' : 'Release Results' ?>
-                </button>
+            <div class="card border-0 shadow-sm my-4">
+                <div class="card-body d-flex justify-content-between align-items-center flex-wrap gap-3">
+                    <div>
+                        <h6 class="mb-1">Student Result Visibility</h6>
+                        <small class="text-muted">
+                            <?= $exam['results_released']
+                                ? 'Students can currently view their results.'
+                                : 'Results are hidden from students.' ?>
+                        </small>
+                    </div>
 
-                <span class="ms-2 small text-muted">
-                    <?= $exam['results_released'] ? 'Students can view results' : 'Results are hidden from students' ?>
-                </span>
-            </form>
+                    <form method="post">
+                        <button
+                            type="submit"
+                            name="toggle_results"
+                            class="btn <?= $exam['results_released'] ? 'btn-danger' : 'btn-success' ?>"
+                            onclick="return confirm('Are you sure you want to <?= $exam['results_released'] ? 'hide' : 'release' ?> results?');"
+                        >
+                            <?= $exam['results_released'] ? 'Hide Results' : 'Release Results' ?>
+                        </button>
+                    </form>
+                </div>
+            </div>
+
 
         </div>
 
-        <form method="get" class="row g-2 align-items-center mb-3" style="max-width:560px;">
+        <form method="get" class="d-flex">
             <input type="hidden" name="exam_id" value="<?= (int)$exam['id'] ?>">
-            <div class="col-auto">
+            <div class="col-auto" style="width: 90%;">
                 <input type="search" name="q" class="form-control" placeholder="Search student name or email" value="<?= htmlspecialchars($q) ?>">
             </div>
-            <div class="col-auto">
-                <button class="btn btn-outline-primary" type="submit">Search</button>
+            <div class="col-auto" style="width: 5%;">
+                <button class="btn btn-outline-primary" type="submit" style="width: 100%;">
+                    <i class="bi bi-search me-2"></i>
+                </button>
             </div>
-            <?php if ($q !== ''): ?>
-                <div class="col-auto">
-                    <a href="exam_results.php?exam_id=<?= (int)$exam['id'] ?>" class="btn btn-outline-secondary">Clear</a>
-                </div>
-            <?php endif; ?>
+            <div class="col-auto" style="width: 5%;">
+                <a href="exam_results.php?exam_id=<?= (int)$exam['id'] ?>" 
+                class="btn btn-danger text-white" style="width: 100%;">
+                    <i class="bi bi-trash me-2" aria-hidden="true"></i>
+                </a>
+            </div>
+      
         </form>
 
         <h6 class="mt-3">Attempts (<?= count($attempts) ?>)</h6>

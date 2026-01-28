@@ -85,7 +85,7 @@ if ($programId === null) {
 </head>
 <body class="">
 
-    <h3>Available Exams</h3>
+<h3 class="fs-5 fw-semibold mb-3">Available Exams</h3>
 
     <?php if ($errorMsg): ?>
         <div class="alert alert-warning"><?= htmlspecialchars($errorMsg) ?></div>

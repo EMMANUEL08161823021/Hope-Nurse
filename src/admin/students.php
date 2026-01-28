@@ -30,7 +30,7 @@ $students = $stmt->fetchAll(PDO::FETCH_ASSOC);
 <?php require '../constants/header.php' ?>
 <title>Manage Students</title>
 </head>
-<body>
+<body class="body">
 
 <div class="container-fluid">
 <div class="row">

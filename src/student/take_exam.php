@@ -63,7 +63,14 @@ foreach ($ansStmt->fetchAll(PDO::FETCH_ASSOC) as $r) $saved[$r['question_id']] =
   <title>Take Exam — <?= htmlspecialchars($attempt['title']) ?></title>
   <style>.question { margin-bottom: 1.5rem; }</style>
 </head>
-<body class="container py-4">
+
+<style>
+  .body {
+      background: #042c2c;
+      color: white;
+  }
+</style>
+<body class="container body py-4">
 
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h4><?= htmlspecialchars($attempt['title']) ?></h4>

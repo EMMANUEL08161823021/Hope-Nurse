@@ -104,27 +104,35 @@ TXT;
 <?php require '../constants/header.php' ?>
 <title>Instructions — <?= htmlspecialchars($exam['course_title'] ?? 'Exam') ?></title>
 </head>
-<body class="container py-4">
 
-<h3><?= htmlspecialchars($exam['course_title'] ?? 'Exam') ?></h3>
+<style>
+    .body {
+        background: #042c2c;
+    }
+</style>
 
-<p class="text-muted">
-    <?= nl2br(htmlspecialchars($exam['course_description'] ?? 'No description available.')) ?>
-</p>
+<body class="body container py-4">      
+        
+        <!-- NOTE: guidance / online consideration -->
+        <div class="alert alert-info">
+            <h3><?= htmlspecialchars($exam['course_title'] ?? 'Exam') ?></h3>
+            
+            <p class="text-muted">
+                <?= nl2br(htmlspecialchars($exam['course_description'] ?? 'No description available.')) ?>
+            </p>
+            
+            <div class="mb-3">
+                <ul>
+                    <li>Duration: <strong><?= (int)$exam['duration'] ?> minutes</strong></li>
+                    <li>Total marks: <strong><?= (int)$exam['total_marks'] ?></strong></li>
+                    <li>Do not refresh the page — answers are autosaved.</li>
+                </ul>
+            </div>
+            <strong>Note:</strong><p class="text-danger">The text below is a guide covering standard examination rules and harmonized penalties. It has been adapted to include online/remote exam considerations (for example: proctoring, device usage and screen-sharing).
+            Local exam officers and the institution retain final authority — this page is informational and does not replace official policy.
 
-<div class="mb-3">
-    <ul>
-        <li>Duration: <strong><?= (int)$exam['duration'] ?> minutes</strong></li>
-        <li>Total marks: <strong><?= (int)$exam['total_marks'] ?></strong></li>
-        <li>Do not refresh the page — answers are autosaved.</li>
-    </ul>
-</div>
-
-<!-- NOTE: guidance / online consideration -->
-<div class="alert alert-info">
-    <strong>Note:</strong> The text below is a guide covering standard examination rules and harmonized penalties. It has been adapted to include online/remote exam considerations (for example: proctoring, device usage and screen-sharing).
-    Local exam officers and the institution retain final authority — this page is informational and does not replace official policy.
-</div>
+            </p> 
+        </div>
 
 <!-- Full instructions -->
 <div class="card mb-3">

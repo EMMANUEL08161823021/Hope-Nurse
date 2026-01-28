@@ -59,19 +59,22 @@ try {
 </head>
 
 <style>
+  .body {
+    font-family: 'Raleway', sans-serif;
+  }
   .form-control:focus {
-      border-color: #eab32e !important;
-      box-shadow: 0 0 0 .2rem rgba(234,179,46,0.25) !important;
-      outline: none;
+    border-color: #eab32e !important;
+    box-shadow: 0 0 0 .2rem rgba(234,179,46,0.25) !important;
+    outline: none;
   }
 
   .form-control:focus-visible {
-      outline: 2px solid rgba(234,179,46,0.35);
-      outline-offset: 2px;
+    outline: 2px solid rgba(234,179,46,0.35);
+    outline-offset: 2px;
   }
 </style>
 
-<body>
+<body class="body">
 
 <div class="container-fluid">
   <div class="row">
@@ -194,8 +197,7 @@ try {
                                         <?= htmlspecialchars(ucfirst($exam['status'] ?? '')) ?>
                                     </span>
                                 </td>
-
-                                <td><?= htmlspecialchars($exam['created_at'] ?? '') ?></td>
+                                <td><?= date('M d, Y', strtotime($exam['created_at'])) ?></td>
 
                                <td class="text-nowrap text-center">
                                 <div class="dropdown">
@@ -418,7 +420,6 @@ try {
             </div>
         </div>
 
-
         <div class="mb-3">
             <label for="edit_status" class="form-label">Status</label>
             <select id="edit_status" name="status" class="form-select" required>
@@ -440,10 +441,8 @@ try {
   </div>
 </div>
 
-<!-- Bootstrap JS: adjust path if your assets live elsewhere -->
 <script src="../../public/assets/dist/js/bootstrap.bundle.min.js"></script>
 
-<!-- Script: suggested-duration logic -->
 <script>
 (function () {
   // Configurable defaults (nursing-friendly)

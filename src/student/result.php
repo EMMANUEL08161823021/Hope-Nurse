@@ -105,7 +105,7 @@ function fmtDate($d) {
 <?php require '../constants/header.php'?>
     <title>Exam Result</title>
 </head>
-<body class="container py-4">
+<body class="container body py-4">
 
 <!-- =======================
      EXAM SUMMARY

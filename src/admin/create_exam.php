@@ -6,7 +6,7 @@ requireRole('admin');
 <?php require '../constants/header.php' ?>
     <title>Create Exam</title>
 </head>
-<body class="container mt-4">
+<body class="container mt-4 body">
 
     <?php
     if (!empty($_SESSION['flash'])): ?>

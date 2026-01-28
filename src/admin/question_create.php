@@ -18,7 +18,7 @@ if (!$exam) die('Exam not found');
 
   <title>Add Question — <?= htmlspecialchars($exam['title']); ?></title>
 </head>
-<body class="container py-4">
+<body class="container body py-4">
   <h3>Add Question to: <?= htmlspecialchars($exam['title']); ?></h3>
 
   <form id="questionForm" method="post" action="/admin/questions_store.php">
