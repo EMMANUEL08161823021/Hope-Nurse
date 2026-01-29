@@ -97,10 +97,8 @@ function humanDuration($seconds) {
             <tbody>
                 <?php foreach ($attempts as $a): ?>
                     <?php
-                        // prefer submitted_at -> started_at -> attempt_created for the 'Date'
                         $dateTaken = $a['submitted_at'] ?: $a['started_at'] ?: $a['attempt_created'];
 
-                        // compute actual time taken in seconds when both timestamps exist
                         $timeTakenText = '—';
                         if (!empty($a['started_at']) && !empty($a['submitted_at'])) {
                             $startTs = strtotime($a['started_at']);
@@ -111,12 +109,11 @@ function humanDuration($seconds) {
                             }
                         }
 
-                        // fallback: use duration_minutes if present (that indicates allocated attempt duration)
                         if ($timeTakenText === '—' && !empty($a['duration_minutes'])) {
                             $timeTakenText = (int)$a['duration_minutes'] . ' min';
                         }
 
-                        $examTitle = $a['exam_title'] ?: ('Exam #' . (int)$a['exam_id']);
+                        $examTitle = $a['exam_title'] ?: ('Exam #' . (int)$a['exam_id']) ?? '' ;
                     ?>
                     <tr>
                         <td><?= (int)$a['attempt_id'] ?></td>

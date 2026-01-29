@@ -29,6 +29,18 @@ $students = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 <?php require '../constants/header.php' ?>
 <title>Manage Students</title>
+<style>
+    .form-control:focus {
+        border-color: #eab32e !important;
+        box-shadow: 0 0 0 .2rem rgba(234,179,46,0.25) !important;
+        outline: none;
+    }
+
+    .form-control:focus-visible {
+        outline: 2px solid rgba(234,179,46,0.35);
+        outline-offset: 2px;
+    }
+</style>
 </head>
 <body class="body">
 
@@ -146,7 +158,7 @@ $students = $stmt->fetchAll(PDO::FETCH_ASSOC);
 </div>
 
 <div class="modal-body">
-<input type="hidden" name="student_id" id="modal_student_id">
+<input class="form-control" type="hidden" name="student_id" id="modal_student_id">
 
 <div class="mb-3">
 <label class="form-label">Student</label>
@@ -155,7 +167,7 @@ $students = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 <div class="mb-3">
 <label class="form-label">Program</label>
-<select name="program" id="modal_program" class="form-select" required>
+<select name="program" id="modal_program" class="form-select form-control" required>
 <option value="">Select program</option>
 <?php foreach ($programs as $p): ?>
 <option value="<?= htmlspecialchars($p['name']) ?>">

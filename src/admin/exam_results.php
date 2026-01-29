@@ -59,6 +59,14 @@ if ($q !== '') {
     $params[] = $like;
     $params[] = $like;
 }
+function gradeFromPercent(float $pct): string {
+    if ($pct >= 70.0) return 'A';
+    if ($pct >= 60.0) return 'B';
+    if ($pct >= 50.0) return 'C';
+    if ($pct >= 45.0) return 'D';
+    if ($pct >= 40.0) return 'E';
+    return 'F';
+}
 
 $attemptsStmt = $pdo->prepare("
     SELECT
@@ -219,6 +227,7 @@ function fmtDate($d) {
                         <th>Student</th>
                         <th>Email</th>
                         <th>Score</th>
+                        <th>Grade</th>
                         <th>Status</th>
                         <th>Time Taken</th>
                         <th>Date</th>
@@ -226,6 +235,24 @@ function fmtDate($d) {
                 </thead>
                 <tbody>
                     <?php foreach ($attempts as $a): ?>
+                        <?php
+                            // Prefer submitted_at, then started_at, then created_at
+                            $dateTaken = $a['submitted_at'] ?: $a['started_at'] ?: $a['attempt_created'];
+
+                            // compute grade if possible
+                            $gradeDisplay = '—';
+                            $pctDisplay = null;
+                            if (isset($a['score']) && $a['score'] !== null && !empty($exam['total_marks']) && ((int)$exam['total_marks']) > 0) {
+                                $score = (float)$a['score'];
+                                $total = (float)$exam['total_marks'];
+                                $pct = ($total > 0) ? ($score / $total) * 100.0 : 0.0;
+                                if ($pct < 0) $pct = 0;
+                                if ($pct > 100) $pct = 100;
+                                $grade = gradeFromPercent($pct);
+                                $gradeDisplay = htmlspecialchars($grade);
+                                $pctDisplay = number_format($pct, 1) . '%';
+                            }
+                        ?>
                         <?php
                             $dateTaken = $a['submitted_at'] ?: $a['started_at'] ?: $a['attempt_created'];
                         ?>
@@ -235,6 +262,13 @@ function fmtDate($d) {
                             <td>
                                 <?= is_null($a['score']) ? '—' : (int)$a['score'] ?>
                                 <?php if (!empty($exam['total_marks'])): ?>/ <?= (int)$exam['total_marks'] ?><?php endif; ?>
+                            </td>
+                            <td>
+                                <?php if ($gradeDisplay === '—'): ?>
+                                    &mdash;
+                                <?php else: ?>
+                                    <strong><?= $gradeDisplay ?></strong>
+                                <?php endif; ?>
                             </td>
                             <td>
                                 <span class="badge bg-<?= in_array($a['attempt_status'], ['submitted','auto_submitted']) ? 'success' : 'secondary' ?>">
