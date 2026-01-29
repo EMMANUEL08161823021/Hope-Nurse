@@ -145,6 +145,10 @@ $attemptsStmt = $pdo->prepare("SELECT COUNT(*) FROM attempts WHERE exam_id = ?")
 $attemptsStmt->execute([$exam_id]);
 $attemptCount = (int)$attemptsStmt->fetchColumn();
 
+$sumStmt = $pdo->prepare("SELECT COALESCE(SUM(marks), 0) FROM questions WHERE exam_id = ?");
+$sumStmt->execute([$exam_id]);
+$sumQuestionMarks = (int)$sumStmt->fetchColumn();
+
 
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_exam'])) {
@@ -226,7 +230,7 @@ if (!empty($questionIds)) {
 </style>
 <body class="body">
 
-<div class="container mt-4">
+<div class="container my-4">
 
     <?php if (!empty($_SESSION['flash'])): ?>
         <div class="alert alert-success alert-dismissible fade show" role="alert">
@@ -241,7 +245,7 @@ if (!empty($questionIds)) {
     <div class="card shadow-sm">
         <div class="p-4" style="background-color: #042c2c; color: #fff;">
             <h3><?= htmlspecialchars($exam['course_title'] ?? 'Untitled course') ?></h3>
-            <p class="text-muted"><?= htmlspecialchars($exam['course_description'] ?? 'No description') ?></p>
+            <p class="text-muted small"><?= htmlspecialchars($exam['course_description'] ?? 'No description') ?></p>
         </div>
         <div class="card-body">
             <div class="row mb-3">
@@ -285,10 +289,18 @@ if (!empty($questionIds)) {
                     <?= htmlspecialchars($exam['duration'] ?? 'N/A') ?> minutes
                 </div>
 
-                <div class="col-md-4">
+               <div class="col-md-4">
                     <strong>Total Marks:</strong><br>
-                    <?= htmlspecialchars($exam['total_marks'] ?? 'Auto-calculated') ?>
+                    <?php if (!empty($exam['total_marks'])): ?>
+                        <?= (int)$sumQuestionMarks ?> / <?= (int)$exam['total_marks'] ?>
+                        <div class="small text-muted">
+                            Remaining: <?= max(0, (int)$exam['total_marks'] - (int)$sumQuestionMarks) ?> marks
+                        </div>
+                    <?php else: ?>
+                        <?= (int)$sumQuestionMarks ?> (no exam total configured)
+                    <?php endif; ?>
                 </div>
+
             </div>
 
             <hr>
@@ -409,14 +421,14 @@ if (!empty($questionIds)) {
                                             data-bs-toggle="modal"
                                             data-bs-target="#editQuestionModal"
                                         >
-                                            <i class="bi bi-pencil"></i> Edit
+                                            <i class="bi bi-pencil"></i>
                                         </button>
 
                                         <!-- Delete button (keep as before) -->
                                         <a href="delete_question.php?id=<?= (int)$q['id'] ?>&exam_id=<?= urlencode($exam_id) ?>"
                                             class="btn btn-danger btn-sm"
                                             onclick="return confirm('Delete question?')">
-                                            Delete
+                                            <i class="bi bi-trash" aria-hidden="true"></i>
                                         </a>
                                         </td>
 

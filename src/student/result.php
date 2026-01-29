@@ -13,11 +13,6 @@ if ($attempt_id <= 0) {
     die('Invalid attempt ID.');
 }
 
-/*
-|-------------------------------------------------------------------------- 
-| Fetch attempt + exam info (secure: student-owned only)
-|-------------------------------------------------------------------------- 
-*/
 $stmt = $pdo->prepare("
     SELECT 
         a.id,
@@ -107,9 +102,8 @@ function fmtDate($d) {
 </head>
 <body class="container body py-4">
 
-<!-- =======================
-     EXAM SUMMARY
-======================== -->
+
+
 <h3 class="mb-3">Exam Result</h3>
 
 <div class="card mb-4 shadow-sm">

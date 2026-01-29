@@ -230,6 +230,15 @@ if (!empty($programId)) {
                 <p class="text-muted small mb-0">Welcome back — continue your Hope journey.</p>
             </div>
 
+            <div class="col-sm-6 col-md-3 mb-3">
+                <div style="background-color: rgba(234,179,46,0.12);" class="card text-left shadow-sm">
+                    <div class="card-body">
+                        <h6>Course completed</h6>
+                       <h3> <?= (int)$completedExamsProgram ?> / <?= (int)$totalCourses ?> </h3>
+                    </div>
+                </div>
+            </div>
+
             <div class="row">
                 <?php require 'exam.php' ?>
 
@@ -241,9 +250,6 @@ if (!empty($programId)) {
                                 <h5 class="card-title mb-0">Courses for
                                     <small class="text-muted"><?= $programName ? htmlspecialchars($programName) : '—' ?></small>
                                 </h5>
-                                <div class="small text-muted">
-                                    Courses: <?= (int)$completedExamsProgram ?> / <?= (int)$totalCourses ?> completed
-                                </div>
                             </div>
 
                             <?php if ($coursesError): ?>

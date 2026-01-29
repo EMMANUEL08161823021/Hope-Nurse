@@ -42,7 +42,7 @@ function nav_link_html(string $href, string $label, string $currentScript): stri
       <img src="https://www.hopenurse.com/photos/Original%20logo%20NBG.png" alt="Hope" style="height:45px; margin-right:8px;">
     </a>
 
-    <ul class="nav nav-pills flex-column mb-auto">
+    <ul class="nav nav-pills flex-column gap-2 mb-auto">
         <li class="nav-item">
             <?php echo nav_link_html('dashboard.php', 'Dashboard', $currentScript); ?>
         </li>

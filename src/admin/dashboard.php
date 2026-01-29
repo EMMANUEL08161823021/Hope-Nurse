@@ -635,112 +635,123 @@ try {
   }
 })();
 
-document.querySelectorAll('.edit-exam-btn').forEach(button => {
-    button.addEventListener('click', () => {
-        document.getElementById('edit_exam_id').value = button.dataset.id;
-        document.getElementById('edit_program_id').value = button.dataset.program;
-        document.getElementById('edit_duration').value = button.dataset.duration;
-        document.getElementById('edit_total').value = button.dataset.total;
-        document.getElementById('edit_num_questions').value = button.dataset.questions;
-        document.getElementById('edit_status').value = button.dataset.status;
-
-        // Enable course dropdown
-        const courseSelect = document.getElementById('edit_course_id');
-        courseSelect.disabled = false;
-        courseSelect.innerHTML = `<option value="${button.dataset.course}" selected>Current course</option>`;
-
-        new bootstrap.Modal(document.getElementById('editExamModal')).show();
-    });
-});
 
 (function () {
-    const GET_COURSES_URL = '../admin/get_courses.php'; // adjust relative path if needed
+  const GET_COURSES_URL = '../admin/get_courses.php'; // adjust path if needed
 
-    // helper to populate #edit_course_id from courses array
-    function populateCourseSelect(selectEl, courses, selectedId) {
-        selectEl.innerHTML = '<option value="">Select course</option>';
-        courses.forEach(c => {
-            const opt = document.createElement('option');
-            opt.value = c.id;
-            opt.textContent = c.title;
-            if (String(c.id) === String(selectedId)) opt.selected = true;
-            selectEl.appendChild(opt);
-        });
-        selectEl.disabled = false;
+  async function fetchCourses(programId) {
+    if (!programId) return [];
+    try {
+      const resp = await fetch(`${GET_COURSES_URL}?program_id=${encodeURIComponent(programId)}`, { credentials: 'same-origin' });
+      const payload = await resp.json();
+      // support several response shapes
+      if (payload && payload.success && Array.isArray(payload.data)) return payload.data;
+      if (payload && Array.isArray(payload.data)) return payload.data;
+      if (Array.isArray(payload)) return payload;
+    } catch (err) {
+      console.error('fetchCourses error', err);
     }
+    return [];
+  }
 
-    async function fetchCourses(programId) {
-        if (!programId) return [];
-        try {
-            const resp = await fetch(`${GET_COURSES_URL}?program_id=${encodeURIComponent(programId)}`, { credentials: 'same-origin' });
-            const payload = await resp.json();
-            if (payload && payload.success) return payload.data || [];
-        } catch (e) {
-            console.error('fetchCourses error', e);
-        }
-        return [];
-    }
-
-    // When Edit button is clicked: populate the edit modal fields
-    document.querySelectorAll('.edit-exam-btn').forEach(btn => {
-        btn.addEventListener('click', async function () {
-            const id = this.dataset.id || '';
-            const programId = this.dataset.program_id || '';
-            const courseId = this.dataset.course_id || '';
-            const duration = this.dataset.duration || '';
-            const total = this.dataset.total || '';
-            const status = this.dataset.status || 'draft';
-
-            // set hidden id
-            document.getElementById('edit_exam_id').value = id;
-
-            // set simple fields
-            document.getElementById('edit_duration').value = duration;
-            document.getElementById('edit_total').value = total;
-            document.getElementById('edit_status').value = status;
-
-            // set program select
-            const editProgramSelect = document.getElementById('edit_program_id');
-            editProgramSelect.value = programId;
-
-            // load courses for this program and select the right one
-            const editCourseSelect = document.getElementById('edit_course_id');
-            editCourseSelect.disabled = true;
-            editCourseSelect.innerHTML = '<option>Loading courses…</option>';
-
-            const courses = await fetchCourses(programId);
-            if (courses.length === 0) {
-                editCourseSelect.innerHTML = '<option value="">No courses</option>';
-                editCourseSelect.disabled = true;
-            } else {
-                populateCourseSelect(editCourseSelect, courses, courseId);
-            }
-        });
+  function populateCourseSelect(selectEl, courses, selectedId) {
+    selectEl.innerHTML = '<option value="">Select course</option>';
+    courses.forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = String(c.id ?? c.course_id ?? c.id);
+      opt.textContent = c.title ?? c.name ?? ('Course ' + opt.value);
+      if (String(opt.value) === String(selectedId)) opt.selected = true;
+      selectEl.appendChild(opt);
     });
+    selectEl.disabled = false;
+  }
 
-    // If admin changes program inside edit modal, reload courses
-    const editProgram = document.getElementById('edit_program_id');
-    if (editProgram) {
-        editProgram.addEventListener('change', async function () {
-            const pid = this.value;
-            const editCourseSelect = document.getElementById('edit_course_id');
-            if (!pid) {
-                editCourseSelect.innerHTML = '<option value="">Select a program first</option>';
-                editCourseSelect.disabled = true;
-                return;
-            }
-            editCourseSelect.disabled = true;
-            editCourseSelect.innerHTML = '<option>Loading courses…</option>';
-            const courses = await fetchCourses(pid);
-            if (courses.length === 0) {
-                editCourseSelect.innerHTML = '<option value="">No courses</option>';
-                editCourseSelect.disabled = true;
-            } else {
-                populateCourseSelect(editCourseSelect, courses, '');
-            }
-        });
+  // Use the modal 'show' event so we get the button that opened it (relatedTarget)
+  const editModalEl = document.getElementById('editExamModal');
+  if (!editModalEl) return;
+
+  editModalEl.addEventListener('show.bs.modal', async function (ev) {
+    const triggerBtn = ev.relatedTarget;
+    if (!triggerBtn) return;
+
+    // read attributes (support both naming conventions)
+    const id = triggerBtn.getAttribute('data-id') || '';
+    const programId = triggerBtn.getAttribute('data-program_id') || triggerBtn.getAttribute('data-program') || '';
+    const courseId = triggerBtn.getAttribute('data-course_id') || triggerBtn.getAttribute('data-course') || '';
+    const duration = triggerBtn.getAttribute('data-duration') || '';
+    const total = triggerBtn.getAttribute('data-total') || '';
+    const numQuestions = triggerBtn.getAttribute('data-questions') || triggerBtn.getAttribute('data-num_questions') || '';
+    const status = triggerBtn.getAttribute('data-status') || 'draft';
+
+    // set simple fields
+    const setIf = (sel, val) => { const el = document.getElementById(sel); if (el) el.value = val; };
+    setIf('edit_exam_id', id);
+    setIf('edit_duration', duration);
+    setIf('edit_total', total);
+    setIf('edit_num_questions', numQuestions);
+    setIf('edit_status', status);
+
+    // program select (server-side options should exist)
+    const editProgramSelect = document.getElementById('edit_program_id');
+    const editCourseSelect = document.getElementById('edit_course_id');
+
+    if (editProgramSelect) {
+      editProgramSelect.value = programId ? String(programId) : '';
     }
+
+    // prepare course select UI while loading
+    if (editCourseSelect) {
+      editCourseSelect.disabled = true;
+      editCourseSelect.innerHTML = '<option>Loading courses…</option>';
+    }
+
+    if (!programId) {
+      if (editCourseSelect) {
+        editCourseSelect.innerHTML = '<option value="">Select a program first</option>';
+        editCourseSelect.disabled = true;
+      }
+      return;
+    }
+
+    // fetch courses for selected program and choose current course
+    const courses = await fetchCourses(programId);
+    if (!editCourseSelect) return;
+
+    if (!Array.isArray(courses) || courses.length === 0) {
+      editCourseSelect.innerHTML = '<option value="">No courses</option>';
+      editCourseSelect.disabled = true;
+    } else {
+      populateCourseSelect(editCourseSelect, courses, courseId);
+    }
+  });
+
+  // Also handle when admin manually changes the program inside the modal
+  const editProgram = document.getElementById('edit_program_id');
+  if (editProgram) {
+    editProgram.addEventListener('change', async function () {
+      const pid = this.value;
+      const editCourseSelect = document.getElementById('edit_course_id');
+      if (!pid) {
+        editCourseSelect.innerHTML = '<option value="">Select a program first</option>';
+        editCourseSelect.disabled = true;
+        return;
+      }
+      editCourseSelect.disabled = true;
+      editCourseSelect.innerHTML = '<option>Loading courses…</option>';
+      const courses = await fetchCourses(pid);
+      if (!Array.isArray(courses) || courses.length === 0) {
+        editCourseSelect.innerHTML = '<option value="">No courses</option>';
+        editCourseSelect.disabled = true;
+      } else {
+        populateCourseSelect(editCourseSelect, courses, '');
+      }
+    });
+  }
+
 })();
+
+
+
 </script>
 
 <script>

@@ -108,14 +108,14 @@ function fmtDate($d) {
         <h3><?= htmlspecialchars($exam['course_title'] ?? 'Untitled course') ?></h3>
   
         <?php if (!empty($exam['course_description'])): ?>
-            <div class="small mt-1"><?= nl2br(htmlspecialchars($exam['course_description'])) ?></div>
+            <div class="small text-muted mt-1"><?= nl2br(htmlspecialchars($exam['course_description'])) ?></div>
         <?php endif; ?>
     </div>
     <div class="card-body">
 
         <div class="text-muted mb-2">
 
-            <div class="mt-3 bg-light p-3 rounded shadow-sm">
+            <div class="mt-3 p-3 rounded">
                 <div class="d-flex flex-wrap align-items-center justify-content-between text-muted small fw-medium">
                     <!-- Total Marks -->
                     <div class="d-flex align-items-center gap-2">
@@ -161,7 +161,7 @@ function fmtDate($d) {
                 </div>
             </div>
 
-            <div class="card border-0 shadow-sm my-4">
+            <div class="my-4">
                 <div class="card-body d-flex justify-content-between align-items-center flex-wrap gap-3">
                     <div>
                         <h6 class="mb-1">Student Result Visibility</h6>
@@ -218,11 +218,10 @@ function fmtDate($d) {
                     <tr>
                         <th>Student</th>
                         <th>Email</th>
-                        <th class="text-end">Score</th>
+                        <th>Score</th>
                         <th>Status</th>
                         <th>Time Taken</th>
                         <th>Date</th>
-                        <th>Action</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -233,7 +232,7 @@ function fmtDate($d) {
                         <tr>
                             <td><?= htmlspecialchars($a['student_name'] ?: '—') ?></td>
                             <td><?= htmlspecialchars($a['student_email'] ?: '—') ?></td>
-                            <td class="text-end">
+                            <td>
                                 <?= is_null($a['score']) ? '—' : (int)$a['score'] ?>
                                 <?php if (!empty($exam['total_marks'])): ?>/ <?= (int)$exam['total_marks'] ?><?php endif; ?>
                             </td>
@@ -242,13 +241,43 @@ function fmtDate($d) {
                                     <?= htmlspecialchars(ucfirst(str_replace('_', ' ', $a['attempt_status']))) ?>
                                 </span>
                             </td>
-                            <td><?= htmlspecialchars(!empty($a['duration_minutes']) ? (int)$a['duration_minutes'] . ' min' : '—') ?></td>
+                            <?php
+        
+                            $timeTakenStr = '—';
+
+                            if (!empty($a['submitted_at']) && !empty($a['started_at'])) {
+                                try {
+                                    $start = new DateTime($a['started_at']);
+                                    $end   = new DateTime($a['submitted_at']);
+                                    $diff  = $end->getTimestamp() - $start->getTimestamp();
+                                    if ($diff < 0) $diff = 0;
+
+                                    $hours = floor($diff / 3600);
+                                    $minutes = floor(($diff % 3600) / 60);
+                                    $seconds = $diff % 60;
+
+                                    if ($hours > 0) {
+                                        // H:MM:SS
+                                        $timeTakenStr = sprintf('%d:%02d:%02d', $hours, $minutes, $seconds);
+                                    } elseif ($minutes > 0) {
+                                        // Xm Ys
+                                        $timeTakenStr = sprintf('%d min %d s', $minutes, $seconds);
+                                    } else {
+                                        // Xs
+                                        $timeTakenStr = sprintf('%d s', $seconds);
+                                    }
+                                } catch (Exception $e) {
+                                    // keep fallback below
+                                    $timeTakenStr = '—';
+                                }
+                            } elseif (!empty($a['duration_minutes'])) {
+                                // fallback to recorded duration (if you prefer not to show this, remove this branch)
+                                $timeTakenStr = (int)$a['duration_minutes'] . ' min';
+                            }
+                            ?>
+                            <td><?= htmlspecialchars($timeTakenStr) ?></td>
+
                             <td><?= htmlspecialchars(fmtDate($dateTaken)) ?></td>
-                            <td>
-                                <a href="attempt_view.php?attempt_id=<?= (int)$a['attempt_id'] ?>" class="btn btn-sm btn-outline-primary">
-                                    View Result
-                                </a>
-                            </td>
                         </tr>
                     <?php endforeach; ?>
                 </tbody>

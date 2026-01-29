@@ -76,6 +76,7 @@ $students = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 <td><?= date('M d, Y', strtotime($s['created_at'])) ?></td>
 
+
 <td class="text-center position-relative">
 <div class="dropdown">
 <button class="btn btn-sm btn-light border rounded-circle"
@@ -84,43 +85,43 @@ $students = $stmt->fetchAll(PDO::FETCH_ASSOC);
 </button>
 
 <ul class="dropdown-menu dropdown-menu-end shadow"
-    style="z-index:1055;">
+    style="z-index:3000;">
 
-<li>
-<button class="dropdown-item change-program-btn"
-        data-bs-toggle="modal"
-        data-bs-target="#changeProgramModal"
-        data-student-id="<?= $s['id'] ?>"
-        data-student-name="<?= htmlspecialchars($s['full_name'], ENT_QUOTES) ?>"
-        data-current-program="<?= htmlspecialchars($s['program'] ?? '', ENT_QUOTES) ?>">
-<i class="bi bi-person-lines-fill me-2"></i>Change Program
-</button>
-</li>
+    <li>
+    <button class="dropdown-item change-program-btn"
+            data-bs-toggle="modal"
+            data-bs-target="#changeProgramModal"
+            data-student-id="<?= $s['id'] ?>"
+            data-student-name="<?= htmlspecialchars($s['full_name'], ENT_QUOTES) ?>"
+            data-current-program="<?= htmlspecialchars($s['program'] ?? '', ENT_QUOTES) ?>">
+    <i class="bi bi-person-lines-fill me-2"></i>Change Program
+    </button>
+    </li>
 
-<li>
-<a class="dropdown-item"
-   href="student_attempts.php?id=<?= $s['id'] ?>">
-<i class="bi bi-journal-text me-2"></i>Attempts
-</a>
-</li>
+    <li>
+    <a class="dropdown-item"
+    href="student_attempts.php?id=<?= $s['id'] ?>">
+    <i class="bi bi-journal-text me-2"></i>Attempts
+    </a>
+    </li>
 
-<li>
-<a class="dropdown-item"
-   href="student_toggle.php?id=<?= $s['id'] ?>">
-<i class="bi <?= $s['status']==='active'?'bi-person-x-fill text-warning':'bi-person-check-fill text-success' ?> me-2"></i>
-<?= $s['status']==='active'?'Block':'Activate' ?>
-</a>
-</li>
+    <li>
+    <a class="dropdown-item"
+    href="student_toggle.php?id=<?= $s['id'] ?>">
+    <i class="bi <?= $s['status']==='active'?'bi-person-x-fill text-warning':'bi-person-check-fill text-success' ?> me-2"></i>
+    <?= $s['status']==='active'?'Block':'Activate' ?>
+    </a>
+    </li>
 
-<li><hr class="dropdown-divider"></li>
+    <li><hr class="dropdown-divider"></li>
 
-<li>
-<a class="dropdown-item text-danger"
-   href="student_delete.php?id=<?= $s['id'] ?>"
-   onclick="return confirm('Delete this student permanently?')">
-<i class="bi bi-trash me-2"></i>Delete
-</a>
-</li>
+    <li>
+    <a class="dropdown-item text-danger"
+    href="student_delete.php?id=<?= $s['id'] ?>"
+    onclick="return confirm('Delete this student permanently?')">
+    <i class="bi bi-trash me-2"></i>Delete
+    </a>
+    </li>
 </ul>
 </div>
 </td>
