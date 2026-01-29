@@ -1,8 +1,17 @@
 # Hope Nurse – Online Examination System
 
-Hope Nurse is a web-based online examination application designed to manage exams, questions, and student assessments in an academic setting. It supports admin-controlled exam creation and monitoring, as well as secure student participation with timed exams and autosave.
+This is a web-based online examination application designed to manage exams, questions, and student assessments in an academic setting. It supports admin-controlled exam creation and monitoring, as well as secure student participation with timed exams and autosave.
 
 ---
+
+## Login credentials for testing
+Admin 
+email: emmanueloguntolu48@gmail.com
+password: password
+
+Student
+email: josh@gmail.com
+password: emmanuel
 
 ## Technology Stack
 
