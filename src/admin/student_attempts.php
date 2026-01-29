@@ -113,7 +113,7 @@ function humanDuration($seconds) {
                             $timeTakenText = (int)$a['duration_minutes'] . ' min';
                         }
 
-                        $examTitle = $a['exam_title'] ?: ('Exam #' . (int)$a['exam_id']) ?? '' ;
+                         $examTitle = $a['exam_title'] ?? ('Exam #' . (int)$a['exam_id']);
                     ?>
                     <tr>
                         <td><?= (int)$a['attempt_id'] ?></td>
