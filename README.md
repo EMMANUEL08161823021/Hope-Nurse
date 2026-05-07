@@ -23,7 +23,7 @@ password: emmanuel
 **Frontend**
 - HTML5
 - Bootstrap 5
-- Vanilla JavaScript
+- JavaScript
 
 **Development Environment**
 - XAMPP (recommended for Windows)
